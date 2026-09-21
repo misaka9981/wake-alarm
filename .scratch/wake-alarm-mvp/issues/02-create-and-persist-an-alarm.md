@@ -38,7 +38,8 @@ How it was verified:
 - `./gradlew :core:test` green: 22 tests (AlarmCatalog 8, AlarmCodec 8, Alarm 5,
   AppInfo 1).
 - `./gradlew :app:assembleDebug` green.
-- CI: <fill in run link>.
+- CI: [run 35661844464](https://github.com/misaka9981/wake-alarm/actions/runs/35661844464)
+  green — core tests, debug APK build, and Release publish all succeeded.
 
 Acceptance:
 
