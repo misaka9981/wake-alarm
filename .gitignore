@@ -19,4 +19,5 @@ captures/
 # Signing: the debug keystore is deliberately committed (see keystore/README.md),
 # but any release keystore must never be.
 *.jks
+*.keystore
 !keystore/debug.keystore

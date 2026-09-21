@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Launcher label only. Keep in sync with AppInfo.NAME in :core, which the
+         placeholder screen renders. -->
     <string name="app_name">Wake Alarm</string>
 </resources>
