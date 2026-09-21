@@ -1,0 +1,75 @@
+package com.misaka9981.alarm.core
+
+import java.time.DayOfWeek
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+
+class AlarmCodecTest {
+    private val alarms = listOf(
+        Alarm(
+            id = AlarmId("6f9a1c2e-0001"),
+            time = AlarmTime(6, 30),
+            repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+            enabled = true,
+        ),
+        Alarm(
+            id = AlarmId("6f9a1c2e-0002"),
+            time = AlarmTime(9, 5),
+            repeatDays = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+            enabled = false,
+        ),
+    )
+
+    @Test
+    fun roundTripsEveryAlarm() {
+        val decoded = AlarmCodec.decode(AlarmCodec.encode(alarms))
+
+        assertEquals(alarms, decoded)
+    }
+
+    @Test
+    fun roundTripsAnEmptyConfiguration() {
+        assertEquals(emptyList(), AlarmCodec.decode(AlarmCodec.encode(emptyList())))
+    }
+
+    @Test
+    fun rejectsUnknownHeader() {
+        assertFailsWith<AlarmFormatException> { AlarmCodec.decode("not-alarm-data") }
+    }
+
+    @Test
+    fun rejectsUnknownVersion() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 99")
+        }
+    }
+
+    @Test
+    fun rejectsAStructurallyBrokenRecord() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 1\nonly-one-field")
+        }
+    }
+
+    @Test
+    fun rejectsAnOutOfRangeTime() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 1\nid|24|00|1|1")
+        }
+    }
+
+    @Test
+    fun rejectsAnUnknownRepeatDay() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 1\nid|07|00|1|8")
+        }
+    }
+
+    @Test
+    fun rejectsAnAlarmWithNoRepeatDays() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 1\nid|07|00|1|")
+        }
+    }
+}
