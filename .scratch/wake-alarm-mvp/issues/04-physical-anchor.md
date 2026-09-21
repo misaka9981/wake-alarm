@@ -66,7 +66,8 @@ How it was verified:
   tests round-trip anchors, bindings, and awkward payloads, and reject malformed
   or dangling data.
 - `./gradlew :app:assembleDebug` green; APK produced.
-- CI: see the run linked from the commit.
+- CI: [run 35664491020](https://github.com/misaka9981/wake-alarm/actions/runs/35664491020)
+  green — core tests, debug APK build, and Release publish all succeeded.
 
 Acceptance:
 
