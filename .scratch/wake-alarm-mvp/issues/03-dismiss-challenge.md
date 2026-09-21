@@ -55,7 +55,8 @@ How it was verified:
   correct ⇒ dismissed, wrong ⇒ ongoing + feedback + harder, elapsed ⇒ harder
   independently, dismissed ⇒ inert, and no sequence of wrong answers dismisses.
 - `./gradlew :app:assembleDebug` green.
-- CI: green run to be linked after push.
+- CI: [run 35662949683](https://github.com/misaka9981/wake-alarm/actions/runs/35662949683)
+  green — core tests, debug APK build, and Release publish all succeeded.
 
 Acceptance:
 
