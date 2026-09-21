@@ -53,13 +53,15 @@ import kotlinx.coroutines.launch
  * `core` ([AlarmCatalog]).
  *
  * When [onOpenDevChallenge] is provided (debug builds), a development entry
- * point opens the Dismiss Challenge without an Alarm ringing.
+ * point opens the Dismiss Challenge without an Alarm ringing. [onOpenDevAnchor]
+ * is the equivalent for the Physical Anchor flow.
  */
 @Composable
 fun AlarmListScreen(
     repository: AlarmRepository,
     modifier: Modifier = Modifier,
     onOpenDevChallenge: (() -> Unit)? = null,
+    onOpenDevAnchor: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var catalog by remember { mutableStateOf(AlarmCatalog.empty) }
@@ -111,13 +113,24 @@ fun AlarmListScreen(
                 }
             }
 
-            if (onOpenDevChallenge != null) {
-                TextButton(
-                    onClick = onOpenDevChallenge,
+            if (onOpenDevChallenge != null || onOpenDevAnchor != null) {
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp),
-                ) { Text(text = "DEV: Dismiss Challenge") }
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    if (onOpenDevChallenge != null) {
+                        TextButton(onClick = onOpenDevChallenge) {
+                            Text(text = "DEV: Dismiss Challenge")
+                        }
+                    }
+                    if (onOpenDevAnchor != null) {
+                        TextButton(onClick = onOpenDevAnchor) {
+                            Text(text = "DEV: Physical Anchor")
+                        }
+                    }
+                }
             }
         }
     }

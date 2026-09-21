@@ -74,5 +74,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.datastore.preferences)
 
+    // Camera-based Physical Anchor scanning. The decision it feeds lives in :core.
+    implementation(libs.google.play.services.code.scanner)
+
     debugImplementation(libs.androidx.ui.tooling)
 }

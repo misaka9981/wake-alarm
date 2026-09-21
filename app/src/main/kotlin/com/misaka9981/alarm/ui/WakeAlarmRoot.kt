@@ -8,24 +8,53 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.misaka9981.alarm.BuildConfig
 import com.misaka9981.alarm.core.AlarmRepository
+import com.misaka9981.alarm.core.AnchorRepository
+import com.misaka9981.alarm.core.AnchorScanner
+
+/** The screens the app can show. */
+private enum class Screen { Alarms, Challenge, Anchor }
 
 /**
- * Hosts the app's screens and, in debug builds only, the development entry point
- * to the Dismiss Challenge.
+ * Hosts the app's screens and, in debug builds only, the development entry
+ * points to the Dismiss Challenge and the Physical Anchor flow.
  */
 @Composable
-fun WakeAlarmRoot(repository: AlarmRepository, modifier: Modifier = Modifier) {
-    var showChallenge by remember { mutableStateOf(false) }
-    val openDevChallenge: (() -> Unit)? =
-        if (BuildConfig.DEBUG) { { showChallenge = true } } else null
+fun WakeAlarmRoot(
+    alarmRepository: AlarmRepository,
+    anchorRepository: AnchorRepository,
+    scanner: AnchorScanner,
+    modifier: Modifier = Modifier,
+) {
+    var screen by remember { mutableStateOf(Screen.Alarms) }
+    val developmentEntryPoints = BuildConfig.DEBUG
 
-    if (showChallenge) {
-        DismissChallengeScreen(onClose = { showChallenge = false }, modifier = modifier)
-    } else {
-        AlarmListScreen(
-            repository = repository,
+    when (screen) {
+        Screen.Alarms -> AlarmListScreen(
+            repository = alarmRepository,
             modifier = modifier,
-            onOpenDevChallenge = openDevChallenge,
+            onOpenDevChallenge = if (developmentEntryPoints) {
+                { screen = Screen.Challenge }
+            } else {
+                null
+            },
+            onOpenDevAnchor = if (developmentEntryPoints) {
+                { screen = Screen.Anchor }
+            } else {
+                null
+            },
+        )
+
+        Screen.Challenge -> DismissChallengeScreen(
+            onClose = { screen = Screen.Alarms },
+            modifier = modifier,
+        )
+
+        Screen.Anchor -> AnchorScreen(
+            alarmRepository = alarmRepository,
+            anchorRepository = anchorRepository,
+            scanner = scanner,
+            onClose = { screen = Screen.Alarms },
+            modifier = modifier,
         )
     }
 }
