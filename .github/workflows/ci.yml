@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-core:
+    name: Core JVM unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run core unit tests
+        run: ./gradlew :core:test --stacktrace
+
+      - name: Upload core test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-report
+          path: core/build/reports/tests/
+          if-no-files-found: ignore
+
+  build-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    needs: test-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish APK to GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-apk
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-debug
+          path: dist
+
+      - name: Give the APK a stable asset name
+        run: mv dist/app-debug.apk dist/wake-alarm.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Wake Alarm build ${{ github.run_number }}
+          body: |
+            Automated debug build from `${{ github.sha }}`.
+
+            Install on the phone by opening the APK asset below, or use the
+            stable download URL that always points at the newest build:
+
+            https://github.com/${{ github.repository }}/releases/latest/download/wake-alarm.apk
+          files: dist/wake-alarm.apk
+          fail_on_unmatched_files: true

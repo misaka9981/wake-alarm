@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws the UI, so the platform theme only needs to be a bare,
+         action-bar-free surface. -->
+    <style name="Theme.WakeAlarm" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
