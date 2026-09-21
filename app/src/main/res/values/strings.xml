@@ -3,4 +3,9 @@
     <!-- Launcher label only. Keep in sync with AppInfo.NAME in :core, which the
          placeholder screen renders. -->
     <string name="app_name">Wake Alarm</string>
+
+    <!-- The firing notification channel. -->
+    <string name="alarm_channel_name">Alarm</string>
+    <string name="alarm_channel_description">A ringing Alarm that is dismissed only by its Dismiss Challenge and Physical Anchor.</string>
+    <string name="alarm_notification_title">Alarm ringing</string>
 </resources>

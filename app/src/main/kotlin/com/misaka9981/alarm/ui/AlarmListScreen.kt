@@ -41,6 +41,8 @@ import com.misaka9981.alarm.core.AlarmCatalog
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.core.AlarmTime
+import com.misaka9981.alarm.core.ReliabilityRequirement
+import com.misaka9981.alarm.schedule.AlarmScheduler
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -52,16 +54,25 @@ import kotlinx.coroutines.launch
  * create/edit/enable/disable/delete actions. Rendering only; the rules live in
  * `core` ([AlarmCatalog]).
  *
+ * Saving the list re-arms every Alarm through [scheduler], and loading it does
+ * the same so the app is armed after it regains control. [missingRequirements]
+ * drives the reliability warning; [onOpenReliability] opens the guide.
+ *
  * When [onOpenDevChallenge] is provided (debug builds), a development entry
  * point opens the Dismiss Challenge without an Alarm ringing. [onOpenDevAnchor]
- * is the equivalent for the Physical Anchor flow.
+ * and [onOpenDevFire] are the equivalents for the Physical Anchor flow and the
+ * end-to-end firing flow.
  */
 @Composable
 fun AlarmListScreen(
     repository: AlarmRepository,
+    scheduler: AlarmScheduler,
     modifier: Modifier = Modifier,
+    missingRequirements: Set<ReliabilityRequirement> = emptySet(),
+    onOpenReliability: (() -> Unit)? = null,
     onOpenDevChallenge: (() -> Unit)? = null,
     onOpenDevAnchor: (() -> Unit)? = null,
+    onOpenDevFire: ((AlarmId) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var catalog by remember { mutableStateOf(AlarmCatalog.empty) }
@@ -71,11 +82,13 @@ fun AlarmListScreen(
 
     LaunchedEffect(repository) {
         catalog = AlarmCatalog.of(repository.load())
+        scheduler.reschedule(catalog.alarms)
         loaded = true
     }
 
     fun commit(next: AlarmCatalog) {
         catalog = next
+        scheduler.reschedule(next.alarms)
         scope.launch { repository.save(next.alarms) }
     }
 
@@ -113,7 +126,21 @@ fun AlarmListScreen(
                 }
             }
 
-            if (onOpenDevChallenge != null || onOpenDevAnchor != null) {
+            if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
+                TextButton(
+                    onClick = onOpenReliability,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp),
+                ) {
+                    Text(
+                        text = "⚠ Reliability: ${missingRequirements.size} missing — fix",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            if (onOpenDevChallenge != null || onOpenDevAnchor != null || onOpenDevFire != null) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -128,6 +155,11 @@ fun AlarmListScreen(
                     if (onOpenDevAnchor != null) {
                         TextButton(onClick = onOpenDevAnchor) {
                             Text(text = "DEV: Physical Anchor")
+                        }
+                    }
+                    if (onOpenDevFire != null && catalog.alarms.isNotEmpty()) {
+                        TextButton(onClick = { onOpenDevFire(catalog.alarms.first().id) }) {
+                            Text(text = "DEV: Fire Alarm")
                         }
                     }
                 }
