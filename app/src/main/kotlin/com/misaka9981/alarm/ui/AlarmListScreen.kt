@@ -51,9 +51,16 @@ import kotlinx.coroutines.launch
  * The Alarm list: every Alarm's time, repeat days, and enabled state, with the
  * create/edit/enable/disable/delete actions. Rendering only; the rules live in
  * `core` ([AlarmCatalog]).
+ *
+ * When [onOpenDevChallenge] is provided (debug builds), a development entry
+ * point opens the Dismiss Challenge without an Alarm ringing.
  */
 @Composable
-fun AlarmListScreen(repository: AlarmRepository, modifier: Modifier = Modifier) {
+fun AlarmListScreen(
+    repository: AlarmRepository,
+    modifier: Modifier = Modifier,
+    onOpenDevChallenge: (() -> Unit)? = null,
+) {
     val scope = rememberCoroutineScope()
     var catalog by remember { mutableStateOf(AlarmCatalog.empty) }
     var loaded by remember { mutableStateOf(false) }
@@ -102,6 +109,15 @@ fun AlarmListScreen(repository: AlarmRepository, modifier: Modifier = Modifier) 
                         )
                     }
                 }
+            }
+
+            if (onOpenDevChallenge != null) {
+                TextButton(
+                    onClick = onOpenDevChallenge,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                ) { Text(text = "DEV: Dismiss Challenge") }
             }
         }
     }

@@ -9,7 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.data.DataStoreAlarmRepository
-import com.misaka9981.alarm.ui.AlarmListScreen
+import com.misaka9981.alarm.ui.WakeAlarmRoot
 
 /**
  * Thin Android adapter around the pure `core` module.
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AlarmListScreen(repository)
+                    WakeAlarmRoot(repository)
                 }
             }
         }
