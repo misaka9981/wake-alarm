@@ -82,4 +82,33 @@ class StreakTest {
 
         assertEquals(Streak(count = 1, lastDay = day), streak)
     }
+
+    @Test
+    fun anEscapeHatchUseBreaksTheStreak() {
+        val streak = Streak()
+            .record(day, DayOutcome.Dismissed)
+            .record(day.plusDays(1), DayOutcome.Dismissed)
+            .record(day.plusDays(2), DayOutcome.EscapeHatch)
+
+        assertEquals(Streak(count = 0, lastDay = day.plusDays(2)), streak)
+    }
+
+    @Test
+    fun anEscapeHatchUseAfterAnEarlierDismissalOnTheSameDayStillBreaksIt() {
+        val streak = Streak()
+            .record(day.minusDays(1), DayOutcome.Dismissed)
+            .record(day, DayOutcome.Dismissed)
+            .record(day, DayOutcome.EscapeHatch)
+
+        assertEquals(Streak(count = 0, lastDay = day), streak)
+    }
+
+    @Test
+    fun theDayAfterAnEscapeHatchUseStartsANewStreakAtOne() {
+        val streak = Streak()
+            .record(day, DayOutcome.EscapeHatch)
+            .record(day.plusDays(1), DayOutcome.Dismissed)
+
+        assertEquals(Streak(count = 1, lastDay = day.plusDays(1)), streak)
+    }
 }

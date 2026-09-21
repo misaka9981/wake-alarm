@@ -21,12 +21,14 @@ class FiringSessionTest {
     private fun session(
         baseDifficulty: Int = 1,
         cap: SoundCap = soundCap,
+        escapeHatch: EscapeHatch = EscapeHatch.of(EscapeHatchPassword("open-sesame")),
     ): FiringSession =
         FiringSession.start(
             generator = ArithmeticChallengeGenerator(Random(7)),
             policy = policy,
             baseDifficulty = baseDifficulty,
             soundCap = cap,
+            escapeHatch = escapeHatch,
         )
 
     private fun FiringState.ringing(): FiringState.Ringing = this as FiringState.Ringing
@@ -195,5 +197,106 @@ class FiringSessionTest {
             session.onEvent(FiringEvent.AnchorScanned(AnchorScanResult.NotReached("hallway"))),
         )
         assertEquals(FiringState.Dismissed, session.onEvent(FiringEvent.Tick(1.seconds)))
+    }
+
+    @Test
+    fun theEscapeHatchRequiresTheLongPressBeforeThePassword() {
+        val session = session()
+
+        val state = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertTrue(state is FiringState.Ringing)
+        assertFalse(state.ringing().escapeHatchRevealed)
+    }
+
+    @Test
+    fun theLongPressRevealsTheEscapeHatchPasswordPrompt() {
+        val state = session().onEvent(FiringEvent.EscapeHatchLongPressed).ringing()
+
+        assertTrue(state.escapeHatchRevealed)
+    }
+
+    @Test
+    fun theLongPressAndCorrectPasswordForceSilenceWithoutTheChallengeOrAnchor() {
+        val session = session()
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+
+        val result = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertEquals(FiringState.EscapeHatchUsed, result)
+    }
+
+    @Test
+    fun theEscapeHatchIsAvailableEvenAfterTheSoundCapExpires() {
+        val session = session()
+        session.onEvent(FiringEvent.Tick(1.hours))
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+
+        val result = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertEquals(FiringState.EscapeHatchUsed, result)
+    }
+
+    @Test
+    fun aWrongPasswordDoesNotForceSilence() {
+        val session = session()
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+
+        val state = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("guess"))
+
+        assertTrue(state is FiringState.Ringing)
+        assertTrue(state.ringing().challenge is DismissalState.Ongoing)
+        assertFalse(state.ringing().anchorReached)
+    }
+
+    @Test
+    fun theEscapeHatchIsUnavailableWhenNoPasswordIsSet() {
+        val session = session(escapeHatch = EscapeHatch.none)
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+
+        val state = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertTrue(state is FiringState.Ringing)
+    }
+
+    @Test
+    fun theEscapeHatchPromptCanBeCancelledAndRevealedAgain() {
+        val session = session()
+        val revealed = session.onEvent(FiringEvent.EscapeHatchLongPressed).ringing()
+        assertTrue(revealed.escapeHatchRevealed)
+
+        val cancelled = session.onEvent(FiringEvent.EscapeHatchCancelled).ringing()
+        assertFalse(cancelled.escapeHatchRevealed)
+
+        val ignored = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+        assertTrue(ignored is FiringState.Ringing)
+    }
+
+    @Test
+    fun anEscapeHatchUseIsTerminal() {
+        val session = session()
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+        session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertEquals(FiringState.EscapeHatchUsed, session.onEvent(FiringEvent.AnswerSubmitted("anything")))
+        assertEquals(
+            FiringState.EscapeHatchUsed,
+            session.onEvent(FiringEvent.AnchorScanned(AnchorScanResult.Reached)),
+        )
+        assertEquals(FiringState.EscapeHatchUsed, session.onEvent(FiringEvent.Tick(1.seconds)))
+        assertEquals(FiringState.EscapeHatchUsed, session.onEvent(FiringEvent.EscapeHatchLongPressed))
+    }
+
+    @Test
+    fun aDismissedFiringSessionCannotBeForceSilenced() {
+        val session = session()
+        val answer = session.state.ringing().challenge().challenge.answer
+        session.onEvent(FiringEvent.AnswerSubmitted(answer.toString()))
+        session.onEvent(FiringEvent.AnchorScanned(AnchorScanResult.Reached))
+        session.onEvent(FiringEvent.EscapeHatchLongPressed)
+
+        val result = session.onEvent(FiringEvent.EscapeHatchPasswordSubmitted("open-sesame"))
+
+        assertEquals(FiringState.Dismissed, result)
     }
 }

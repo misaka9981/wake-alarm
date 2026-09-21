@@ -7,7 +7,9 @@ import kotlin.time.Duration
  *
  * There is deliberately no Snooze or skip event: an Alarm cannot be postponed,
  * and it is dismissed only once the Dismiss Challenge is solved and the Physical
- * Anchor is reached. See `CONTEXT.md` and ADR-0002/ADR-0003.
+ * Anchor is reached. The Escape Hatch is the one deliberate exception — it
+ * force-silences an Alarm without either, but only after a hidden long-press and
+ * the correct private password. See `CONTEXT.md` and ADR-0002/ADR-0003.
  */
 sealed interface FiringEvent {
     /** The owner typed [answer] into the Dismiss Challenge and submitted it. */
@@ -18,6 +20,15 @@ sealed interface FiringEvent {
 
     /** The owner scanned something; [result] says whether it was the bound anchor. */
     data class AnchorScanned(val result: AnchorScanResult) : FiringEvent
+
+    /** The owner long-pressed the hidden Escape Hatch target, revealing its prompt. */
+    data object EscapeHatchLongPressed : FiringEvent
+
+    /** The owner typed [password] into the revealed Escape Hatch prompt. */
+    data class EscapeHatchPasswordSubmitted(val password: String) : FiringEvent
+
+    /** The owner backed out of the Escape Hatch prompt without unlocking it. */
+    data object EscapeHatchCancelled : FiringEvent
 }
 
 /**
@@ -35,16 +46,28 @@ sealed interface FiringState {
      * It is deliberately independent of [challenge]: after the cap the Alarm is
      * still firing and uncleared, and completing the challenge and anchor still
      * dismisses it. The screen renders this; it never decides it.
+     *
+     * [escapeHatchRevealed] is whether the hidden Escape Hatch prompt is showing.
+     * It only becomes true after the long-press, so neither the password entry
+     * alone nor a reflex can reach the Escape Hatch.
      */
     data class Ringing(
         val challenge: DismissalState,
         val anchorReached: Boolean,
         val anchorFeedback: AnchorScanResult?,
         val capExpired: Boolean = false,
+        val escapeHatchRevealed: Boolean = false,
     ) : FiringState
 
     /** Both the Dismiss Challenge and the Physical Anchor are satisfied. */
     data object Dismissed : FiringState
+
+    /**
+     * The Escape Hatch force-silenced the Alarm without the Dismiss Challenge or
+     * the Physical Anchor. It is a deliberate last resort for emergencies and
+     * defects: the app records the use and the day's Streak is broken.
+     */
+    data object EscapeHatchUsed : FiringState
 }
 
 /**
@@ -60,12 +83,17 @@ sealed interface FiringState {
  * It also applies the [SoundCap] to the elapsed ringing time. Once the cap has
  * expired, [FiringState.Ringing.capExpired] is true and the adapter stops the
  * sound and vibration, but the state stays [FiringState.Ringing] — the Alarm is
- * uncleared until both the challenge and the anchor are done. See `CONTEXT.md`,
+ * uncleared until both the challenge and the anchor are done.
+ *
+ * Finally it owns the Escape Hatch: only the hidden long-press followed by the
+ * correct private password reaches [FiringState.EscapeHatchUsed], which
+ * force-silences the Alarm without the challenge or the anchor. See `CONTEXT.md`,
  * ADR-0002, and ADR-0003.
  */
 class FiringSession private constructor(
     private val challenge: DismissalSession,
     private val soundCap: SoundCap,
+    private val escapeHatch: EscapeHatch,
     private var elapsed: Duration,
     initialState: FiringState.Ringing,
 ) {
@@ -104,6 +132,21 @@ class FiringSession private constructor(
                     anchorFeedback = event.result,
                 ),
             )
+
+            // The long-press only reveals the prompt; by itself it silences nothing.
+            is FiringEvent.EscapeHatchLongPressed -> current.copy(escapeHatchRevealed = true)
+
+            // Force-silencing requires both gestures: the prompt must already be
+            // revealed by the long-press, and the password must be correct. A
+            // wrong password leaves the Alarm ringing.
+            is FiringEvent.EscapeHatchPasswordSubmitted ->
+                if (current.escapeHatchRevealed && escapeHatch.unlocks(event.password)) {
+                    FiringState.EscapeHatchUsed
+                } else {
+                    current
+                }
+
+            is FiringEvent.EscapeHatchCancelled -> current.copy(escapeHatchRevealed = false)
         }
     }
 
@@ -118,24 +161,30 @@ class FiringSession private constructor(
     companion object {
         /**
          * Starts firing with a fresh Dismiss Challenge at [baseDifficulty], the
-         * anchor not yet reached, and the sound cap not yet expired.
+         * anchor not yet reached, the sound cap not yet expired, and the Escape
+         * Hatch prompt hidden. [escapeHatch] is the owner's private password; it
+         * defaults to [EscapeHatch.none], so an Alarm without a configured
+         * password cannot be force-silenced.
          */
         fun start(
             generator: ChallengeGenerator,
             policy: EscalationPolicy,
             baseDifficulty: Int = 1,
             soundCap: SoundCap = SoundCap(),
+            escapeHatch: EscapeHatch = EscapeHatch.none,
         ): FiringSession {
             val challenge = DismissalSession.start(generator, policy, baseDifficulty)
             return FiringSession(
                 challenge = challenge,
                 soundCap = soundCap,
+                escapeHatch = escapeHatch,
                 elapsed = Duration.ZERO,
                 initialState = FiringState.Ringing(
                     challenge = challenge.state,
                     anchorReached = false,
                     anchorFeedback = null,
                     capExpired = false,
+                    escapeHatchRevealed = false,
                 ),
             )
         }

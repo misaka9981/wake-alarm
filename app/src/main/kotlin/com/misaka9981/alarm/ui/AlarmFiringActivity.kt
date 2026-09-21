@@ -32,6 +32,8 @@ import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AnchorGate
 import com.misaka9981.alarm.core.ArithmeticChallengeGenerator
+import com.misaka9981.alarm.core.EscapeHatch
+import com.misaka9981.alarm.core.EscapeHatchUse
 import com.misaka9981.alarm.core.EscalationPolicy
 import com.misaka9981.alarm.core.FiringEvent
 import com.misaka9981.alarm.core.FiringSession
@@ -39,8 +41,11 @@ import com.misaka9981.alarm.core.FiringState
 import com.misaka9981.alarm.data.AndroidAnchorScanner
 import com.misaka9981.alarm.data.DataStoreAlarmRepository
 import com.misaka9981.alarm.data.DataStoreAnchorRepository
+import com.misaka9981.alarm.data.DataStoreEscapeHatchLog
+import com.misaka9981.alarm.data.DataStoreEscapeHatchRepository
 import com.misaka9981.alarm.firing.AlarmNotification
 import com.misaka9981.alarm.firing.AlarmService
+import java.time.Instant
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -114,6 +119,8 @@ private fun FiringRoute(
     val alarmRepository = remember(context) { DataStoreAlarmRepository(context) }
     val anchorRepository = remember(context) { DataStoreAnchorRepository(context) }
     val scanner = remember(context) { AndroidAnchorScanner(context) }
+    val escapeHatchRepository = remember(context) { DataStoreEscapeHatchRepository(context) }
+    val escapeHatchLog = remember(context) { DataStoreEscapeHatchLog(context) }
 
     var alarm by remember { mutableStateOf<Alarm?>(null) }
     var anchorLabel by remember { mutableStateOf<String?>(null) }
@@ -128,11 +135,13 @@ private fun FiringRoute(
     LaunchedEffect(alarmId) {
         val loadedAlarm = alarmRepository.load().firstOrNull { it.id == AlarmId(alarmId) }
         val catalog = anchorRepository.load()
+        val escapeHatch = EscapeHatch.of(escapeHatchRepository.load())
         alarm = loadedAlarm
         if (loadedAlarm != null) {
             val started = FiringSession.start(
                 generator = ArithmeticChallengeGenerator(Random(System.currentTimeMillis())),
                 policy = EscalationPolicy(),
+                escapeHatch = escapeHatch,
             )
             session = started
             state = started.state
@@ -154,6 +163,16 @@ private fun FiringRoute(
     LaunchedEffect(state) {
         when (val current = state) {
             is FiringState.Dismissed -> onDismissed()
+            // The Escape Hatch is recorded before the Alarm is silenced, so the
+            // use survives for the Diagnostic Log and for the broken Streak. If
+            // recording fails, the Alarm is still force-silenced.
+            is FiringState.EscapeHatchUsed -> scope.launch {
+                try {
+                    escapeHatchLog.record(EscapeHatchUse(AlarmId(alarmId), Instant.now()))
+                } finally {
+                    onDismissed()
+                }
+            }
             // The cap stops the sound but not the Alarm: the service keeps the
             // ongoing notification until the challenge and anchor are done.
             is FiringState.Ringing -> if (current.capExpired) AlarmService.stopSignalling(context)
@@ -170,6 +189,8 @@ private fun FiringRoute(
         current == null || alarm == null -> MissingAlarm(onClose = onDismissed, modifier = modifier)
 
         current is FiringState.Dismissed -> DismissedAlarm(modifier = modifier)
+
+        current is FiringState.EscapeHatchUsed -> EscapeHatchUsedAlarm(modifier = modifier)
 
         else -> FiringScreen(
             state = current,
@@ -196,8 +217,37 @@ private fun FiringRoute(
                     }
                 }
             },
+            onEscapeHatchLongPress = {
+                session?.let { started ->
+                    state = started.onEvent(FiringEvent.EscapeHatchLongPressed)
+                }
+            },
+            onEscapeHatchPassword = { password ->
+                session?.let { started ->
+                    state = started.onEvent(FiringEvent.EscapeHatchPasswordSubmitted(password))
+                }
+            },
+            onEscapeHatchCancel = {
+                session?.let { started ->
+                    state = started.onEvent(FiringEvent.EscapeHatchCancelled)
+                }
+            },
             modifier = modifier,
         )
+    }
+}
+
+@Composable
+private fun EscapeHatchUsedAlarm(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = "Escape Hatch used.", style = MaterialTheme.typography.headlineSmall)
+        Text(text = "The Alarm is silenced, and the day's Streak is broken.")
     }
 }
 
