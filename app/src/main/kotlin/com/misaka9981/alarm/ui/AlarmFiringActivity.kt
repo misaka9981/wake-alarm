@@ -152,7 +152,13 @@ private fun FiringRoute(
     }
 
     LaunchedEffect(state) {
-        if (state is FiringState.Dismissed) onDismissed()
+        when (val current = state) {
+            is FiringState.Dismissed -> onDismissed()
+            // The cap stops the sound but not the Alarm: the service keeps the
+            // ongoing notification until the challenge and anchor are done.
+            is FiringState.Ringing -> if (current.capExpired) AlarmService.stopSignalling(context)
+            null -> Unit
+        }
     }
 
     val current = state

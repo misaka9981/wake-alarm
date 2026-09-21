@@ -26,15 +26,21 @@ sealed interface FiringEvent {
  */
 sealed interface FiringState {
     /**
-     * The Alarm is still signalling. [challenge] is the Dismiss Challenge state
+     * The Alarm is still firing. [challenge] is the Dismiss Challenge state
      * (still ongoing, or already solved while the anchor is still outstanding),
      * [anchorReached] is whether the bound Physical Anchor has been reached, and
      * [anchorFeedback] is the most recent scan result, if any.
+     *
+     * [capExpired] is whether the [SoundCap] has stopped the sound and vibration.
+     * It is deliberately independent of [challenge]: after the cap the Alarm is
+     * still firing and uncleared, and completing the challenge and anchor still
+     * dismisses it. The screen renders this; it never decides it.
      */
     data class Ringing(
         val challenge: DismissalState,
         val anchorReached: Boolean,
         val anchorFeedback: AnchorScanResult?,
+        val capExpired: Boolean = false,
     ) : FiringState
 
     /** Both the Dismiss Challenge and the Physical Anchor are satisfied. */
@@ -49,11 +55,18 @@ sealed interface FiringState {
  * when **both** are satisfied — neither the challenge alone nor the anchor alone
  * silences the Alarm. The challenge itself still escalates with time and wrong
  * answers through [EscalationPolicy]; that is why the whole session, not just the
- * compile-time event type, is the testing seam. See `CONTEXT.md`, ADR-0002, and
- * ADR-0003.
+ * compile-time event type, is the testing seam.
+ *
+ * It also applies the [SoundCap] to the elapsed ringing time. Once the cap has
+ * expired, [FiringState.Ringing.capExpired] is true and the adapter stops the
+ * sound and vibration, but the state stays [FiringState.Ringing] — the Alarm is
+ * uncleared until both the challenge and the anchor are done. See `CONTEXT.md`,
+ * ADR-0002, and ADR-0003.
  */
 class FiringSession private constructor(
     private val challenge: DismissalSession,
+    private val soundCap: SoundCap,
+    private var elapsed: Duration,
     initialState: FiringState.Ringing,
 ) {
     var state: FiringState = initialState
@@ -71,8 +84,17 @@ class FiringSession private constructor(
             is FiringEvent.AnswerSubmitted ->
                 settle(current.copy(challenge = challenge.onEvent(DismissalEvent.AnswerSubmitted(event.answer))))
 
-            is FiringEvent.Tick ->
-                settle(current.copy(challenge = challenge.onEvent(DismissalEvent.Tick(event.elapsed))))
+            is FiringEvent.Tick -> {
+                // Ringing time only grows; a backwards tick cannot resurrect sound
+                // that the cap has already stopped.
+                if (event.elapsed > elapsed) elapsed = event.elapsed
+                settle(
+                    current.copy(
+                        challenge = challenge.onEvent(DismissalEvent.Tick(event.elapsed)),
+                        capExpired = current.capExpired || soundCap.hasExpired(elapsed),
+                    ),
+                )
+            }
 
             is FiringEvent.AnchorScanned -> settle(
                 current.copy(
@@ -94,19 +116,26 @@ class FiringSession private constructor(
         }
 
     companion object {
-        /** Starts firing with a fresh Dismiss Challenge at [baseDifficulty] and the anchor not yet reached. */
+        /**
+         * Starts firing with a fresh Dismiss Challenge at [baseDifficulty], the
+         * anchor not yet reached, and the sound cap not yet expired.
+         */
         fun start(
             generator: ChallengeGenerator,
             policy: EscalationPolicy,
             baseDifficulty: Int = 1,
+            soundCap: SoundCap = SoundCap(),
         ): FiringSession {
             val challenge = DismissalSession.start(generator, policy, baseDifficulty)
             return FiringSession(
                 challenge = challenge,
+                soundCap = soundCap,
+                elapsed = Duration.ZERO,
                 initialState = FiringState.Ringing(
                     challenge = challenge.state,
                     anchorReached = false,
                     anchorFeedback = null,
+                    capExpired = false,
                 ),
             )
         }

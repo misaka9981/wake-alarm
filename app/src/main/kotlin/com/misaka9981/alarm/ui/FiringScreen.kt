@@ -26,8 +26,9 @@ import com.misaka9981.alarm.core.FiringState
  *
  * It renders only what [com.misaka9981.alarm.core.FiringSession] reports: the
  * Dismiss Challenge and the Physical Anchor, both of which are required before
- * the Alarm is silenced. There is no Snooze control anywhere — see `CONTEXT.md`
- * and ADR-0002. Rendering only; every decision lives in `core`.
+ * the Alarm is silenced, and whether the sound cap has stopped the signalling.
+ * There is no Snooze control anywhere — see `CONTEXT.md` and ADR-0002. Rendering
+ * only; every decision lives in `core`.
  */
 @Composable
 fun FiringScreen(
@@ -53,6 +54,15 @@ fun FiringScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "Alarm — $alarmLabel", style = MaterialTheme.typography.headlineSmall)
+
+        if (ringing.capExpired) {
+            Text(
+                text = "Signalling has stopped to keep this Alarm from ringing forever, " +
+                    "but the Alarm is not cleared. Solve the Dismiss Challenge and reach " +
+                    "the Physical Anchor to clear it.",
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
 
         when (challenge) {
             is DismissalState.Ongoing -> {

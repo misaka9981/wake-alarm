@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class FiringSessionTest {
@@ -14,12 +16,17 @@ class FiringSessionTest {
         elapsedStep = 30.seconds,
         maxDifficulty = 9,
     )
+    private val soundCap = SoundCap(10.minutes)
 
-    private fun session(baseDifficulty: Int = 1): FiringSession =
+    private fun session(
+        baseDifficulty: Int = 1,
+        cap: SoundCap = soundCap,
+    ): FiringSession =
         FiringSession.start(
             generator = ArithmeticChallengeGenerator(Random(7)),
             policy = policy,
             baseDifficulty = baseDifficulty,
+            soundCap = cap,
         )
 
     private fun FiringState.ringing(): FiringState.Ringing = this as FiringState.Ringing
@@ -34,6 +41,7 @@ class FiringSessionTest {
         assertTrue(state.challenge is DismissalState.Ongoing)
         assertFalse(state.anchorReached)
         assertNull(state.anchorFeedback)
+        assertFalse(state.capExpired)
     }
 
     @Test
@@ -121,6 +129,57 @@ class FiringSessionTest {
             .challenge()
 
         assertTrue(after.difficulty > before)
+    }
+
+    @Test
+    fun keepsSignallingBeforeTheCap() {
+        val state = session()
+            .onEvent(FiringEvent.Tick(9.minutes))
+            .ringing()
+
+        assertFalse(state.capExpired)
+    }
+
+    @Test
+    fun theSoundCapStopsSignallingAtTheCap() {
+        val state = session()
+            .onEvent(FiringEvent.Tick(10.minutes))
+            .ringing()
+
+        assertTrue(state.capExpired)
+    }
+
+    @Test
+    fun theAlarmRemainsRingingAndUnclearedAfterTheCap() {
+        val state = session()
+            .onEvent(FiringEvent.Tick(11.minutes))
+            .ringing()
+
+        assertTrue(state.capExpired)
+        assertTrue(state.challenge is DismissalState.Ongoing)
+        assertFalse(state.anchorReached)
+    }
+
+    @Test
+    fun anExpiredCapIsNotUndoneByALaterBackwardsTick() {
+        val session = session()
+        session.onEvent(FiringEvent.Tick(1.hours))
+
+        val state = session.onEvent(FiringEvent.Tick(1.seconds)).ringing()
+
+        assertTrue(state.capExpired)
+    }
+
+    @Test
+    fun solvingTheChallengeAndAnchorAfterTheCapStillDismisses() {
+        val session = session()
+        session.onEvent(FiringEvent.Tick(1.hours))
+        val answer = session.state.ringing().challenge().challenge.answer
+        session.onEvent(FiringEvent.AnswerSubmitted(answer.toString()))
+
+        val result = session.onEvent(FiringEvent.AnchorScanned(AnchorScanResult.Reached))
+
+        assertEquals(FiringState.Dismissed, result)
     }
 
     @Test

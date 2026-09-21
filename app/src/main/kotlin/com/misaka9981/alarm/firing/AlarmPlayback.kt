@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import com.misaka9981.alarm.core.SoundCap
 import com.misaka9981.alarm.core.VolumeRamp
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -20,11 +21,16 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * It owns the platform concerns — a looping [MediaPlayer] on the alarm stream, a
  * repeating [Vibrator] pattern, and a periodic tick — and applies the volume
- * curve that [VolumeRamp] decides in `core`. It does not decide when to stop:
- * the Alarm is dismissed only by the firing session, so the sound keeps going
- * until then. See the spec's "Firing reliably" stories.
+ * curve that [VolumeRamp] decides in `core`. It does not decide when the Alarm is
+ * dismissed: that stays with the firing session. It does apply the [SoundCap],
+ * though: once the cap expires the sound and vibration stop on their own, while
+ * the Alarm stays uncleared and its notification stays. See the spec's "Sound
+ * cap, Streak, and the Escape Hatch".
  */
-class AlarmPlayback(context: Context) {
+class AlarmPlayback(
+    context: Context,
+    private val soundCap: SoundCap = SoundCap(),
+) {
     private val appContext = context.applicationContext
     private val ramp = VolumeRamp()
     private val startedAt = SystemClock.elapsedRealtime()
@@ -32,9 +38,17 @@ class AlarmPlayback(context: Context) {
     private val vibrator: Vibrator? = vibratorFor(appContext)
 
     private var player: MediaPlayer? = null
+    private var signalling = false
 
     private val volumeTick = object : Runnable {
         override fun run() {
+            if (!signalling) return
+            if (soundCap.hasExpired(elapsed())) {
+                // The cap stops the noise but does not clear the Alarm: the
+                // service keeps the ongoing notification until dismissal.
+                stopSignalling()
+                return
+            }
             applyRampedVolume()
             handler.postDelayed(this, VOLUME_TICK_MILLIS)
         }
@@ -48,12 +62,18 @@ class AlarmPlayback(context: Context) {
             it.start()
         }
         startVibrating()
+        signalling = true
         handler.post(volumeTick)
     }
 
-    /** Stops ringing and vibrating. */
+    /** Stops ringing and vibrating, whether the cap expired or the Alarm was dismissed. */
     fun stop() {
         handler.removeCallbacks(volumeTick)
+        stopSignalling()
+    }
+
+    private fun stopSignalling() {
+        signalling = false
         player?.let { current ->
             try {
                 current.stop()
@@ -65,6 +85,8 @@ class AlarmPlayback(context: Context) {
         player = null
         vibrator?.cancel()
     }
+
+    private fun elapsed() = (SystemClock.elapsedRealtime() - startedAt).milliseconds
 
     private fun createPlayer(): MediaPlayer? {
         val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -90,7 +112,7 @@ class AlarmPlayback(context: Context) {
     }
 
     private fun applyRampedVolume() {
-        val fraction = ramp.fractionAt((SystemClock.elapsedRealtime() - startedAt).milliseconds)
+        val fraction = ramp.fractionAt(elapsed())
         player?.setVolume(fraction, fraction)
     }
 
