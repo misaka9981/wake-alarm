@@ -45,6 +45,8 @@
 
     <!-- Alarm list. -->
     <string name="alarms_empty">还没有闹钟。点按 + 添加一个。</string>
+    <string name="alarm_add">添加闹钟</string>
+    <string name="nav_more">更多</string>
     <string name="nav_diagnostic_log">诊断日志</string>
     <string name="nav_statistics">统计</string>
     <string name="nav_settings">设置</string>

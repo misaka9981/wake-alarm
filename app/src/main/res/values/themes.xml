@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Compose draws the UI, so the platform theme only needs to be a bare,
-         action-bar-free surface. -->
-    <style name="Theme.WakeAlarm" parent="android:Theme.Material.Light.NoActionBar" />
+         action-bar-free surface. The system bars are drawn by the edge-to-edge
+         layout (see MainActivity) and by Compose's window insets, so the status
+         bar is transparent and its icons go dark on this light theme. -->
+    <style name="Theme.WakeAlarm" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>

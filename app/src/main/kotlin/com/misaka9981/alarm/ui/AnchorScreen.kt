@@ -14,6 +14,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -78,119 +79,121 @@ fun AnchorScreen(
 
     val anchorPrefix = stringResource(R.string.anchor_default_label)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = stringResource(R.string.anchor_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = stringResource(R.string.anchor_dev_hint),
-            style = MaterialTheme.typography.bodySmall,
-        )
-
-        if (!loaded) {
-            CircularProgressIndicator()
-            return@Column
-        }
-
-        if (alarms.isEmpty()) {
-            Text(text = stringResource(R.string.anchor_create_alarm_first))
-            TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
-            return@Column
-        }
-
-        Text(text = stringResource(R.string.anchor_alarm_label), style = MaterialTheme.typography.titleSmall)
-        Row(
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { WakeAlarmTopBar(stringResource(R.string.anchor_title), onClose) },
+    ) { padding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            alarms.forEach { alarm ->
-                FilterChip(
-                    selected = alarm.id == selected,
-                    onClick = {
-                        selected = alarm.id
-                        status = null
-                    },
-                    label = { Text(text = formatAnchorAlarm(alarm)) },
-                )
-            }
-        }
+            Text(
+                text = stringResource(R.string.anchor_dev_hint),
+                style = MaterialTheme.typography.bodySmall,
+            )
 
-        val alarmId = selected
-        Button(
-            onClick = {
-                if (alarmId == null) return@Button
-                scope.launch {
-                    status = context.getString(R.string.status_scanning)
-                    val payload = scanner.scan()
-                    if (payload == null) {
-                        status = context.getString(R.string.status_scan_cancelled)
-                        return@launch
-                    }
-                    val code = AnchorCode(payload)
-                    val label = catalog.findByCode(code)?.label
-                        ?: anchorLabelFor(payload, anchorPrefix)
-                    val next = catalog
-                        .set(PhysicalAnchor(code = code, label = label))
-                        .bind(alarmId, code)
-                    commit(next)
-                    status = context.getString(
-                        R.string.anchor_set_status,
-                        label,
-                        alarmName(alarms, alarmId),
+            if (!loaded) {
+                CircularProgressIndicator()
+                return@Column
+            }
+
+            if (alarms.isEmpty()) {
+                Text(text = stringResource(R.string.anchor_create_alarm_first))
+                return@Column
+            }
+
+            Text(text = stringResource(R.string.anchor_alarm_label), style = MaterialTheme.typography.titleSmall)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                alarms.forEach { alarm ->
+                    FilterChip(
+                        selected = alarm.id == selected,
+                        onClick = {
+                            selected = alarm.id
+                            status = null
+                        },
+                        label = { Text(text = formatAnchorAlarm(alarm)) },
                     )
                 }
-            },
-            enabled = alarmId != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = stringResource(R.string.anchor_set_from_scan)) }
+            }
 
-        Button(
-            onClick = {
-                if (alarmId == null) return@Button
-                scope.launch {
-                    status = context.getString(R.string.status_scanning)
-                    status = when (val result = catalog.gateFor(alarmId, scanner).scan()) {
-                        is AnchorScanResult.Reached ->
-                            context.getString(R.string.anchor_reached_status)
-                        is AnchorScanResult.NotReached ->
-                            if (result.scanned == null) {
-                                context.getString(R.string.status_scan_cancelled)
-                            } else {
-                                context.getString(R.string.anchor_not_bound)
-                            }
+            val alarmId = selected
+            Button(
+                onClick = {
+                    if (alarmId == null) return@Button
+                    scope.launch {
+                        status = context.getString(R.string.status_scanning)
+                        val payload = scanner.scan()
+                        if (payload == null) {
+                            status = context.getString(R.string.status_scan_cancelled)
+                            return@launch
+                        }
+                        val code = AnchorCode(payload)
+                        val label = catalog.findByCode(code)?.label
+                            ?: anchorLabelFor(payload, anchorPrefix)
+                        val next = catalog
+                            .set(PhysicalAnchor(code = code, label = label))
+                            .bind(alarmId, code)
+                        commit(next)
+                        status = context.getString(
+                            R.string.anchor_set_status,
+                            label,
+                            alarmName(alarms, alarmId),
+                        )
                     }
+                },
+                enabled = alarmId != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(text = stringResource(R.string.anchor_set_from_scan)) }
+
+            Button(
+                onClick = {
+                    if (alarmId == null) return@Button
+                    scope.launch {
+                        status = context.getString(R.string.status_scanning)
+                        status = when (val result = catalog.gateFor(alarmId, scanner).scan()) {
+                            is AnchorScanResult.Reached ->
+                                context.getString(R.string.anchor_reached_status)
+                            is AnchorScanResult.NotReached ->
+                                if (result.scanned == null) {
+                                    context.getString(R.string.status_scan_cancelled)
+                                } else {
+                                    context.getString(R.string.anchor_not_bound)
+                                }
+                        }
+                    }
+                },
+                enabled = alarmId != null && catalog.anchorFor(alarmId) != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(text = stringResource(R.string.anchor_reach_from_scan)) }
+
+            status?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
+
+            HorizontalDivider()
+            Text(text = stringResource(R.string.anchor_list_title), style = MaterialTheme.typography.titleSmall)
+            if (catalog.anchors.isEmpty()) {
+                Text(text = stringResource(R.string.anchor_list_empty))
+            } else {
+                catalog.anchors.forEach { anchor ->
+                    AnchorRow(
+                        anchor = anchor,
+                        boundAlarms = catalog.bindings
+                            .filterValues { it == anchor.code }
+                            .keys
+                            .mapNotNull { id -> alarms.firstOrNull { it.id == id } },
+                        onDelete = { scope.launch { commit(catalog.delete(anchor.code)) } },
+                    )
                 }
-            },
-            enabled = alarmId != null && catalog.anchorFor(alarmId) != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = stringResource(R.string.anchor_reach_from_scan)) }
-
-        status?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
-
-        HorizontalDivider()
-        Text(text = stringResource(R.string.anchor_list_title), style = MaterialTheme.typography.titleSmall)
-        if (catalog.anchors.isEmpty()) {
-            Text(text = stringResource(R.string.anchor_list_empty))
-        } else {
-            catalog.anchors.forEach { anchor ->
-                AnchorRow(
-                    anchor = anchor,
-                    boundAlarms = catalog.bindings
-                        .filterValues { it == anchor.code }
-                        .keys
-                        .mapNotNull { id -> alarms.firstOrNull { it.id == id } },
-                    onDelete = { scope.launch { commit(catalog.delete(anchor.code)) } },
-                )
             }
         }
-
-        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_dev_close)) }
     }
 }
 

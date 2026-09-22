@@ -43,6 +43,8 @@
 
     <!-- Alarm list. -->
     <string name="alarms_empty">No Alarms yet. Tap + to add one.</string>
+    <string name="alarm_add">Add Alarm</string>
+    <string name="nav_more">More</string>
     <string name="nav_diagnostic_log">Diagnostic Log</string>
     <string name="nav_statistics">Statistics</string>
     <string name="nav_settings">Settings</string>

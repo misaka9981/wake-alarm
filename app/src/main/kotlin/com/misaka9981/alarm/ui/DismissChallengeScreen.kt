@@ -9,8 +9,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,58 +86,64 @@ private fun OngoingChallenge(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.dismiss_challenge_title),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = stringResource(
-                R.string.dismiss_challenge_progress,
-                state.difficulty,
-                state.elapsed.inWholeSeconds.toInt(),
-                state.wrongAnswers,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(text = state.challenge.problem, style = MaterialTheme.typography.displaySmall)
-        state.feedback?.let {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { WakeAlarmTopBar(stringResource(R.string.dismiss_challenge_title), onClose) },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(
-                text = stringResource(R.string.wrong_answer_hint),
-                color = MaterialTheme.colorScheme.error,
+                text = stringResource(
+                    R.string.dismiss_challenge_progress,
+                    state.difficulty,
+                    state.elapsed.inWholeSeconds.toInt(),
+                    state.wrongAnswers,
+                ),
+                style = MaterialTheme.typography.bodySmall,
             )
+            Text(text = state.challenge.problem, style = MaterialTheme.typography.displaySmall)
+            state.feedback?.let {
+                Text(
+                    text = stringResource(R.string.wrong_answer_hint),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            OutlinedTextField(
+                value = typed,
+                onValueChange = onTypedChange,
+                label = { Text(text = stringResource(R.string.label_your_answer)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth()) {
+                Text(text = stringResource(R.string.action_submit))
+            }
         }
-        OutlinedTextField(
-            value = typed,
-            onValueChange = onTypedChange,
-            label = { Text(text = stringResource(R.string.label_your_answer)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth()) {
-            Text(text = stringResource(R.string.action_submit))
-        }
-        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_dev_close)) }
     }
 }
 
 @Composable
 private fun DismissedChallenge(onClose: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = stringResource(R.string.alarm_dismissed), style = MaterialTheme.typography.headlineSmall)
-        Button(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { WakeAlarmTopBar(stringResource(R.string.dismiss_challenge_title), onClose) },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = stringResource(R.string.alarm_dismissed), style = MaterialTheme.typography.headlineSmall)
+        }
     }
 }

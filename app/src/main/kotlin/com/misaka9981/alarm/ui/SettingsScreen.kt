@@ -14,6 +14,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,80 +84,81 @@ fun SettingsScreen(
     val boundAnchor = primaryAlarm?.let { anchors.anchorFor(it.id) }
     val anchorPrefix = stringResource(R.string.anchor_default_label)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { WakeAlarmTopBar(stringResource(R.string.settings_title), onClose) },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (!loaded) {
+                CircularProgressIndicator()
+                return@Column
+            }
 
-        if (!loaded) {
-            CircularProgressIndicator()
-            return@Column
-        }
+            Section(title = stringResource(R.string.settings_wake_time))
+            Text(
+                text = primaryAlarm?.let { stringResource(R.string.settings_alarm_at, formatSettingsTime(it)) }
+                    ?: stringResource(R.string.settings_no_alarm),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = { primaryAlarm?.let { editingAlarm = it } },
+                enabled = primaryAlarm != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(text = stringResource(R.string.settings_change_wake_time)) }
 
-        Section(title = stringResource(R.string.settings_wake_time))
-        Text(
-            text = primaryAlarm?.let { stringResource(R.string.settings_alarm_at, formatSettingsTime(it)) }
-                ?: stringResource(R.string.settings_no_alarm),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = { primaryAlarm?.let { editingAlarm = it } },
-            enabled = primaryAlarm != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = stringResource(R.string.settings_change_wake_time)) }
-
-        HorizontalDivider()
-        Section(title = stringResource(R.string.settings_physical_anchor))
-        Text(
-            text = boundAnchor?.let { stringResource(R.string.settings_anchor_bound, it.label) }
-                ?: stringResource(R.string.settings_anchor_none),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = {
-                val alarmId = primaryAlarm?.id ?: return@Button
-                scope.launch {
-                    anchorStatus = context.getString(R.string.status_scanning)
-                    val payload = scanner.scan()
-                    if (payload == null) {
-                        anchorStatus = context.getString(R.string.status_scan_cancelled)
-                        return@launch
+            HorizontalDivider()
+            Section(title = stringResource(R.string.settings_physical_anchor))
+            Text(
+                text = boundAnchor?.let { stringResource(R.string.settings_anchor_bound, it.label) }
+                    ?: stringResource(R.string.settings_anchor_none),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = {
+                    val alarmId = primaryAlarm?.id ?: return@Button
+                    scope.launch {
+                        anchorStatus = context.getString(R.string.status_scanning)
+                        val payload = scanner.scan()
+                        if (payload == null) {
+                            anchorStatus = context.getString(R.string.status_scan_cancelled)
+                            return@launch
+                        }
+                        val code = AnchorCode(payload)
+                        val label = anchors.findByCode(code)?.label
+                            ?: anchorLabelFor(payload, anchorPrefix)
+                        anchorRepository.save(
+                            anchors
+                                .set(PhysicalAnchor(code = code, label = label))
+                                .bind(alarmId, code),
+                        )
+                        anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
+                        refreshKey++
                     }
-                    val code = AnchorCode(payload)
-                    val label = anchors.findByCode(code)?.label
-                        ?: anchorLabelFor(payload, anchorPrefix)
-                    anchorRepository.save(
-                        anchors
-                            .set(PhysicalAnchor(code = code, label = label))
-                            .bind(alarmId, code),
-                    )
-                    anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
-                    refreshKey++
-                }
-            },
-            enabled = primaryAlarm != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = stringResource(R.string.settings_change_anchor)) }
-        anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
+                },
+                enabled = primaryAlarm != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(text = stringResource(R.string.settings_change_anchor)) }
+            anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
 
-        HorizontalDivider()
-        Section(title = stringResource(R.string.settings_escape_hatch_password))
-        Text(
-            text = if (passwordSet) stringResource(R.string.settings_password_set)
-            else stringResource(R.string.settings_password_none),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = { changingPassword = true },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = stringResource(R.string.settings_change_password)) }
-
-        HorizontalDivider()
-        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
+            HorizontalDivider()
+            Section(title = stringResource(R.string.settings_escape_hatch_password))
+            Text(
+                text = if (passwordSet) stringResource(R.string.settings_password_set)
+                else stringResource(R.string.settings_password_none),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = { changingPassword = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(text = stringResource(R.string.settings_change_password)) }
+        }
     }
 
     editingAlarm?.let { alarm ->

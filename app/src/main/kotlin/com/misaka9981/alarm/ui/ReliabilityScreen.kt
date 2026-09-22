@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,63 +54,67 @@ fun ReliabilityScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val required = check.required()
     val missing = check.missing(grants)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = stringResource(R.string.reliability_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            text = stringResource(R.string.reliability_intro),
-            style = MaterialTheme.typography.bodySmall,
-        )
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { WakeAlarmTopBar(stringResource(R.string.reliability_title), onClose) },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.reliability_intro),
+                style = MaterialTheme.typography.bodySmall,
+            )
 
-        Text(
-            text = if (missing.isEmpty()) {
-                stringResource(R.string.reliability_all_granted)
-            } else {
-                stringResource(R.string.reliability_missing_warning, missing.size)
-            },
-            color = if (missing.isEmpty()) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.error
-            },
-        )
+            Text(
+                text = if (missing.isEmpty()) {
+                    stringResource(R.string.reliability_all_granted)
+                } else {
+                    stringResource(R.string.reliability_missing_warning, missing.size)
+                },
+                color = if (missing.isEmpty()) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+            )
 
-        ReliabilityRequirement.entries.forEach { requirement ->
-            val applies = requirement in required
-            val granted = grants.isGranted(requirement)
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(text = requirementLabel(requirement), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text = when {
-                        !applies -> stringResource(R.string.reliability_not_needed)
-                        granted -> stringResource(R.string.reliability_granted)
-                        else -> requirementGuidance(requirement)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (applies && !granted) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(
-                            onClick = {
-                                ReliabilityLauncher.intentFor(context, requirement)
-                                    ?.let { context.startActivity(it) }
-                            },
-                        ) { Text(text = stringResource(R.string.action_grant)) }
+            ReliabilityRequirement.entries.forEach { requirement ->
+                val applies = requirement in required
+                val granted = grants.isGranted(requirement)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = requirementLabel(requirement), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = when {
+                            !applies -> stringResource(R.string.reliability_not_needed)
+                            granted -> stringResource(R.string.reliability_granted)
+                            else -> requirementGuidance(requirement)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (applies && !granted) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(
+                                onClick = {
+                                    ReliabilityLauncher.intentFor(context, requirement)
+                                        ?.let { context.startActivity(it) }
+                                },
+                            ) { Text(text = stringResource(R.string.action_grant)) }
+                        }
                     }
                 }
+                HorizontalDivider()
             }
-            HorizontalDivider()
-        }
 
-        Button(onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = stringResource(R.string.reliability_refresh))
+            Button(onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()) {
+                Text(text = stringResource(R.string.reliability_refresh))
+            }
         }
-        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
     }
 }
 

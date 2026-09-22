@@ -6,9 +6,9 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -23,6 +23,7 @@ import com.misaka9981.alarm.data.DataStoreEscapeHatchRepository
 import com.misaka9981.alarm.firing.AlarmNotification
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import com.misaka9981.alarm.ui.WakeAlarmRoot
+import com.misaka9981.alarm.ui.theme.WakeAlarmTheme
 
 /**
  * Thin Android adapter around the pure `core` module.
@@ -37,6 +38,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Draw edge to edge so the Material 3 top app bars control their own
+        // window insets and the status bar never covers a title.
+        enableEdgeToEdge()
         val alarmRepository: AlarmRepository = DataStoreAlarmRepository(applicationContext)
         val anchorRepository: AnchorRepository = DataStoreAnchorRepository(applicationContext)
         val escapeHatchRepository: EscapeHatchRepository =
@@ -48,7 +52,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
 
         setContent {
-            MaterialTheme {
+            WakeAlarmTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WakeAlarmRoot(
                         alarmRepository,

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The dark counterpart of Theme.WakeAlarm: a dark, action-bar-free surface
+         so the window behind Compose matches the system dark setting and the
+         status-bar icons go light. -->
+    <style name="Theme.WakeAlarm" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

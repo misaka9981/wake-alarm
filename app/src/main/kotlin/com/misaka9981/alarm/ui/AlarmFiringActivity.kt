@@ -55,6 +55,7 @@ import com.misaka9981.alarm.firing.AlarmNotification
 import com.misaka9981.alarm.firing.AlarmReceiver
 import com.misaka9981.alarm.firing.AlarmService
 import com.misaka9981.alarm.reliability.AndroidReliabilityGrants
+import com.misaka9981.alarm.ui.theme.WakeAlarmTheme
 import java.time.Instant
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -78,7 +79,7 @@ class AlarmFiringActivity : ComponentActivity() {
         val alarmId = intent.getStringExtra(EXTRA_ALARM_ID)
         val scheduledAtMillis = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
         setContent {
-            MaterialTheme {
+            WakeAlarmTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     if (alarmId == null) {
                         MissingAlarm(onClose = ::endFiring)

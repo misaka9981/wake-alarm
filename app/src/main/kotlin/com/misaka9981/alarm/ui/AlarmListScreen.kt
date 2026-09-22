@@ -5,27 +5,38 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,7 +114,7 @@ fun AlarmListScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            AlarmListNavigation(
+            AlarmListTopBar(
                 missingRequirements = missingRequirements,
                 devFireAlarmId = catalog.alarms.firstOrNull()?.id,
                 onOpenReliability = onOpenReliability,
@@ -117,7 +128,10 @@ fun AlarmListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { creating = true }) {
-                Text(text = "+", style = MaterialTheme.typography.headlineMedium)
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.alarm_add),
+                )
             }
         },
     ) { padding ->
@@ -129,16 +143,17 @@ fun AlarmListScreen(
             when {
                 !loaded -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
 
-                catalog.alarms.isEmpty() -> Text(
-                    text = stringResource(R.string.alarms_empty),
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
+                catalog.alarms.isEmpty() -> EmptyAlarms(
+                    modifier = Modifier.align(Alignment.Center),
                 )
 
-                else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     items(catalog.alarms, key = { it.id.value }) { alarm ->
-                        AlarmRow(
+                        AlarmCard(
                             alarm = alarm,
                             onEdit = { editing = alarm },
                             onEnabledChange = { commit(catalog.setEnabled(alarm.id, it)) },
@@ -178,12 +193,15 @@ fun AlarmListScreen(
 }
 
 /**
- * The Alarm list's navigation links and debug entry points, held in the
- * `topBar` so they occupy their own region. They never overlap the list because
- * the Scaffold reserves this height for them.
+ * The Alarm list's top app bar: the app name, the reliability warning when a
+ * guarantee is missing, and an overflow menu holding the navigation links and
+ * (in debug builds) the development entry points. Being the Scaffold's
+ * `topBar`, it occupies its own region and can never overlap an Alarm card or
+ * its enable `Switch`.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AlarmListNavigation(
+private fun AlarmListTopBar(
     missingRequirements: Set<ReliabilityRequirement>,
     devFireAlarmId: AlarmId?,
     onOpenReliability: (() -> Unit)?,
@@ -194,109 +212,159 @@ private fun AlarmListNavigation(
     onOpenDevAnchor: (() -> Unit)?,
     onOpenDevFire: ((AlarmId) -> Unit)?,
 ) {
-    val hasNavigation = onOpenReliability != null ||
-        onOpenDiagnosticLog != null ||
+    val hasNavigableScreens = onOpenDiagnosticLog != null ||
         onOpenStatistics != null ||
         onOpenSettings != null
     val hasDevelopment = onOpenDevChallenge != null ||
         onOpenDevAnchor != null ||
         (onOpenDevFire != null && devFireAlarmId != null)
-    if (!hasNavigation && !hasDevelopment) return
+    var menuExpanded by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.Start,
-        ) {
+    TopAppBar(
+        title = { Text(text = stringResource(R.string.app_name)) },
+        actions = {
             if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
-                TextButton(onClick = onOpenReliability) {
-                    Text(
-                        text = stringResource(
-                            R.string.reliability_warning,
-                            missingRequirements.size,
-                        ),
-                        color = MaterialTheme.colorScheme.error,
+                IconButton(onClick = onOpenReliability) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = stringResource(R.string.reliability_title),
+                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }
-            if (onOpenDiagnosticLog != null) {
-                TextButton(onClick = onOpenDiagnosticLog) {
-                    Text(text = stringResource(R.string.nav_diagnostic_log))
+            if (hasNavigableScreens || hasDevelopment) {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.nav_more),
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    onOpenDiagnosticLog?.let { open ->
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.nav_diagnostic_log)) },
+                            onClick = {
+                                menuExpanded = false
+                                open()
+                            },
+                        )
+                    }
+                    onOpenStatistics?.let { open ->
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.nav_statistics)) },
+                            onClick = {
+                                menuExpanded = false
+                                open()
+                            },
+                        )
+                    }
+                    onOpenSettings?.let { open ->
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.nav_settings)) },
+                            onClick = {
+                                menuExpanded = false
+                                open()
+                            },
+                        )
+                    }
+                    if (onOpenDevChallenge != null) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.dev_dismiss_challenge)) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenDevChallenge()
+                            },
+                        )
+                    }
+                    if (onOpenDevAnchor != null) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.dev_physical_anchor)) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenDevAnchor()
+                            },
+                        )
+                    }
+                    if (onOpenDevFire != null && devFireAlarmId != null) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.dev_fire_alarm)) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenDevFire(devFireAlarmId)
+                            },
+                        )
+                    }
                 }
             }
-            if (onOpenStatistics != null) {
-                TextButton(onClick = onOpenStatistics) {
-                    Text(text = stringResource(R.string.nav_statistics))
-                }
-            }
-            if (onOpenSettings != null) {
-                TextButton(onClick = onOpenSettings) {
-                    Text(text = stringResource(R.string.nav_settings))
-                }
-            }
-        }
+        },
+    )
+}
 
-        Column(horizontalAlignment = Alignment.End) {
-            if (onOpenDevChallenge != null) {
-                TextButton(onClick = onOpenDevChallenge) {
-                    Text(text = stringResource(R.string.dev_dismiss_challenge))
-                }
-            }
-            if (onOpenDevAnchor != null) {
-                TextButton(onClick = onOpenDevAnchor) {
-                    Text(text = stringResource(R.string.dev_physical_anchor))
-                }
-            }
-            if (onOpenDevFire != null && devFireAlarmId != null) {
-                TextButton(onClick = { onOpenDevFire(devFireAlarmId) }) {
-                    Text(text = stringResource(R.string.dev_fire_alarm))
-                }
-            }
-        }
+@Composable
+private fun EmptyAlarms(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(text = stringResource(R.string.alarms_empty))
     }
 }
 
 @Composable
-private fun AlarmRow(
+private fun AlarmCard(
     alarm: Alarm,
     onEdit: () -> Unit,
     onEnabledChange: (Boolean) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = formatTime(alarm.time), style = MaterialTheme.typography.headlineSmall)
-            Text(text = formatRepeatDays(alarm.repeatDays), style = MaterialTheme.typography.bodyMedium)
-            if (alarm.silentMode) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEdit)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.alarm_silent_mode),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = formatTime(alarm.time),
+                    style = MaterialTheme.typography.headlineMedium,
                 )
-            }
-            if (alarm.defaultDifficulty > Alarm.DEFAULT_DIFFICULTY) {
                 Text(
-                    text = stringResource(
-                        R.string.alarm_starts_at_difficulty,
-                        alarm.defaultDifficulty,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = formatRepeatDays(alarm.repeatDays),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (alarm.silentMode) {
+                    Text(
+                        text = stringResource(R.string.alarm_silent_mode),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (alarm.defaultDifficulty > Alarm.DEFAULT_DIFFICULTY) {
+                    Text(
+                        text = stringResource(
+                            R.string.alarm_starts_at_difficulty,
+                            alarm.defaultDifficulty,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            Switch(checked = alarm.enabled, onCheckedChange = onEnabledChange)
         }
-        Switch(checked = alarm.enabled, onCheckedChange = onEnabledChange)
     }
-    HorizontalDivider()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
