@@ -6,6 +6,7 @@ import android.content.Intent
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmTime
 import com.misaka9981.alarm.data.DataStoreAlarmRepository
+import com.misaka9981.alarm.data.DataStoreLanguageRepository
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import com.misaka9981.alarm.ui.AlarmFiringActivity
 import kotlinx.coroutines.CoroutineScope
@@ -35,8 +36,17 @@ class AlarmReceiver : BroadcastReceiver() {
                     .firstOrNull { it.id == AlarmId(alarmId) }
 
                 if (alarm != null && alarm.enabled) {
+                    // The notification is built outside the composition, so the
+                    // chosen language is carried to the service here.
+                    val language = DataStoreLanguageRepository(appContext).load()
                     AlarmScheduler(appContext).schedule(alarm)
-                    AlarmService.start(appContext, alarmId, labelFor(alarm.time), alarm.silentMode)
+                    AlarmService.start(
+                        appContext,
+                        alarmId,
+                        labelFor(alarm.time),
+                        alarm.silentMode,
+                        language,
+                    )
                     launchFiringActivity(appContext, alarmId, intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L))
                 }
             } finally {

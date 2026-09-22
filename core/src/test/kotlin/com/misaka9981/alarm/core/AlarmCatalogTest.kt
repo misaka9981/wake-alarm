@@ -82,4 +82,29 @@ class AlarmCatalogTest {
 
         assertEquals(listOf(early, weekdayMorning, late), catalog.alarms)
     }
+
+    @Test
+    fun theOnlyEnabledAlarmIsReportedAsTheLastOne() {
+        val catalog = AlarmCatalog.of(listOf(weekdayMorning, weekend.copy(enabled = false)))
+
+        assertEquals(true, catalog.isOnlyEnabled(weekdayMorning.id))
+        assertEquals(false, catalog.isOnlyEnabled(weekend.id))
+    }
+
+    @Test
+    fun withSeveralEnabledAlarmsNoneIsTheLastEnabledOne() {
+        val catalog = AlarmCatalog.of(listOf(weekdayMorning, weekend))
+
+        assertEquals(false, catalog.isOnlyEnabled(weekdayMorning.id))
+        assertEquals(false, catalog.isOnlyEnabled(weekend.id))
+    }
+
+    @Test
+    fun withNoEnabledAlarmsNoneIsTheLastEnabledOne() {
+        val catalog = AlarmCatalog.of(
+            listOf(weekdayMorning.copy(enabled = false), weekend.copy(enabled = false)),
+        )
+
+        assertEquals(false, catalog.isOnlyEnabled(weekdayMorning.id))
+    }
 }

@@ -25,6 +25,13 @@ class AlarmCatalog private constructor(val alarms: List<Alarm>) {
     fun setEnabled(id: AlarmId, enabled: Boolean): AlarmCatalog =
         of(alarms.map { if (it.id == id) it.copy(enabled = enabled) else it })
 
+    /**
+     * Whether [id] is the only enabled Alarm, so disabling it would leave the
+     * owner with nothing to wake them. The confirmation shown before disabling
+     * the last enabled Alarm is driven by this.
+     */
+    fun isOnlyEnabled(id: AlarmId): Boolean = alarms.singleOrNull { it.enabled }?.id == id
+
     companion object {
         private val byTime = compareBy<Alarm>({ it.time.hour }, { it.time.minute }, { it.id.value })
 

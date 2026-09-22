@@ -18,6 +18,7 @@
     <string name="action_grant">Grant</string>
     <string name="action_submit">Submit</string>
     <string name="action_dev_close">Close (development entry point)</string>
+    <string name="action_disable">Disable Alarm</string>
     <string name="label_your_answer">Your answer</string>
     <string name="label_password">Password</string>
     <string name="status_loading">Loading…</string>
@@ -54,12 +55,21 @@
     <string name="dev_fire_alarm">DEV: Fire Alarm</string>
     <string name="alarm_silent_mode">Silent Mode · vibration only</string>
     <string name="alarm_starts_at_difficulty">Starts at difficulty %1$d</string>
+    <string name="alarm_next_today">Today %1$s</string>
+    <string name="alarm_next_tomorrow">Tomorrow %1$s</string>
+    <string name="alarm_next_weekday">%1$s %2$s</string>
     <string name="alarm_editor_title_new">New Alarm</string>
     <string name="alarm_editor_title_edit">Edit Alarm</string>
     <string name="alarm_editor_repeat">Repeat</string>
     <string name="alarm_editor_enabled">Enabled</string>
     <string name="alarm_editor_silent_mode">Silent Mode (vibration only)</string>
     <string name="alarm_editor_default_difficulty">Default difficulty (where Escalation starts)</string>
+
+    <!-- Confirmations before a destructive change. -->
+    <string name="confirm_delete_alarm_title">Delete Alarm?</string>
+    <string name="confirm_delete_alarm_message">This cannot be undone.</string>
+    <string name="confirm_disable_last_alarm_title">Disable the last enabled Alarm?</string>
+    <string name="confirm_disable_last_alarm_message">With it disabled, no Alarm will wake you.</string>
 
     <!-- Dismiss Challenge. -->
     <string name="dismiss_challenge_title">Dismiss Challenge</string>
@@ -139,6 +149,12 @@
     <string name="settings_change_password">Change password</string>
     <string name="change_password_new">New password</string>
     <string name="change_password_confirm">Confirm new password</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="settings_build">Build</string>
+    <string name="settings_build_value">Version %1$s · build %2$s</string>
 
     <!-- Statistics. -->
     <string name="statistics_title">Statistics</string>

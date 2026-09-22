@@ -20,6 +20,7 @@
     <string name="action_grant">授予</string>
     <string name="action_submit">提交</string>
     <string name="action_dev_close">关闭（开发入口）</string>
+    <string name="action_disable">关闭闹钟</string>
     <string name="label_your_answer">你的答案</string>
     <string name="label_password">密码</string>
     <string name="status_loading">正在加载…</string>
@@ -56,12 +57,21 @@
     <string name="dev_fire_alarm">DEV: 触发闹钟</string>
     <string name="alarm_silent_mode">静音模式 · 仅振动</string>
     <string name="alarm_starts_at_difficulty">起始难度 %1$d</string>
+    <string name="alarm_next_today">今天 %1$s</string>
+    <string name="alarm_next_tomorrow">明天 %1$s</string>
+    <string name="alarm_next_weekday">%1$s %2$s</string>
     <string name="alarm_editor_title_new">新建闹钟</string>
     <string name="alarm_editor_title_edit">编辑闹钟</string>
     <string name="alarm_editor_repeat">重复</string>
     <string name="alarm_editor_enabled">启用</string>
     <string name="alarm_editor_silent_mode">静音模式（仅振动）</string>
     <string name="alarm_editor_default_difficulty">默认难度（难度升级的起点）</string>
+
+    <!-- Confirmations before a destructive change. -->
+    <string name="confirm_delete_alarm_title">删除闹钟？</string>
+    <string name="confirm_delete_alarm_message">删除后无法恢复。</string>
+    <string name="confirm_disable_last_alarm_title">关闭最后一个启用的闹钟？</string>
+    <string name="confirm_disable_last_alarm_message">关闭后，将没有闹钟唤醒你。</string>
 
     <!-- Dismiss Challenge. -->
     <string name="dismiss_challenge_title">解除挑战</string>
@@ -141,6 +151,12 @@
     <string name="settings_change_password">更改密码</string>
     <string name="change_password_new">新密码</string>
     <string name="change_password_confirm">确认新密码</string>
+    <string name="settings_language">语言</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+    <string name="settings_build">构建</string>
+    <string name="settings_build_value">版本 %1$s · 构建 %2$s</string>
 
     <!-- Statistics. -->
     <string name="statistics_title">统计</string>

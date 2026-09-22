@@ -1,7 +1,9 @@
 package com.misaka9981.alarm.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.BuildConfig
 import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmCatalog
@@ -38,6 +42,7 @@ import com.misaka9981.alarm.core.AnchorCatalog
 import com.misaka9981.alarm.core.AnchorCode
 import com.misaka9981.alarm.core.AnchorRepository
 import com.misaka9981.alarm.core.AnchorScanner
+import com.misaka9981.alarm.core.AppLanguage
 import com.misaka9981.alarm.core.EscapeHatchPassword
 import com.misaka9981.alarm.core.EscapeHatchRepository
 import com.misaka9981.alarm.core.PhysicalAnchor
@@ -158,6 +163,33 @@ fun SettingsScreen(
                 onClick = { changingPassword = true },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(text = stringResource(R.string.settings_change_password)) }
+
+            HorizontalDivider()
+            Section(title = stringResource(R.string.settings_language))
+            val language = LocalAppLanguage.current
+            val setLanguage = LocalSetAppLanguage.current
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LanguageChip(R.string.language_system, language == AppLanguage.System) {
+                    setLanguage(AppLanguage.System)
+                }
+                LanguageChip(R.string.language_chinese, language == AppLanguage.Chinese) {
+                    setLanguage(AppLanguage.Chinese)
+                }
+                LanguageChip(R.string.language_english, language == AppLanguage.English) {
+                    setLanguage(AppLanguage.English)
+                }
+            }
+
+            HorizontalDivider()
+            Section(title = stringResource(R.string.settings_build))
+            Text(
+                text = stringResource(
+                    R.string.settings_build_value,
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.BUILD_IDENTIFIER,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 
@@ -193,6 +225,16 @@ fun SettingsScreen(
 @Composable
 private fun Section(title: String) {
     Text(text = title, style = MaterialTheme.typography.titleMedium)
+}
+
+/** One choice in the in-app language selector. */
+@Composable
+private fun LanguageChip(@StringRes labelRes: Int, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(text = stringResource(labelRes)) },
+    )
 }
 
 @Composable

@@ -51,6 +51,7 @@ import com.misaka9981.alarm.data.DataStoreAnchorRepository
 import com.misaka9981.alarm.data.DataStoreDiagnosticLog
 import com.misaka9981.alarm.data.DataStoreEscapeHatchLog
 import com.misaka9981.alarm.data.DataStoreEscapeHatchRepository
+import com.misaka9981.alarm.data.DataStoreLanguageRepository
 import com.misaka9981.alarm.firing.AlarmNotification
 import com.misaka9981.alarm.firing.AlarmReceiver
 import com.misaka9981.alarm.firing.AlarmService
@@ -78,17 +79,23 @@ class AlarmFiringActivity : ComponentActivity() {
         keepScreenOn()
         val alarmId = intent.getStringExtra(EXTRA_ALARM_ID)
         val scheduledAtMillis = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
+        val languageRepository = DataStoreLanguageRepository(applicationContext)
         setContent {
-            WakeAlarmTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    if (alarmId == null) {
-                        MissingAlarm(onClose = ::endFiring)
-                    } else {
-                        FiringRoute(
-                            alarmId = alarmId,
-                            scheduledAtMillis = scheduledAtMillis,
-                            onDismissed = ::endFiring,
-                        )
+            // The firing screen is a separate activity from the main one, so it
+            // wraps itself in the same language provider to render in the owner's
+            // chosen language too.
+            AppLanguageProvider(languageRepository) {
+                WakeAlarmTheme {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        if (alarmId == null) {
+                            MissingAlarm(onClose = ::endFiring)
+                        } else {
+                            FiringRoute(
+                                alarmId = alarmId,
+                                scheduledAtMillis = scheduledAtMillis,
+                                onDismissed = ::endFiring,
+                            )
+                        }
                     }
                 }
             }

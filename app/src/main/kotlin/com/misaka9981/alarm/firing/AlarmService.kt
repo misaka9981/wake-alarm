@@ -8,7 +8,10 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import com.misaka9981.alarm.core.AppLanguage
+import com.misaka9981.alarm.core.LanguageCodec
 import com.misaka9981.alarm.core.Signalling
+import com.misaka9981.alarm.ui.localizedFor
 
 /**
  * Thin Android adapter that keeps the Alarm's notification alive while it is
@@ -38,8 +41,13 @@ class AlarmService : Service() {
         val alarmId = intent?.getStringExtra(EXTRA_ALARM_ID).orEmpty()
         val label = intent?.getStringExtra(EXTRA_ALARM_LABEL) ?: getString(android.R.string.untitled)
         val silentMode = intent?.getBooleanExtra(EXTRA_SILENT_MODE, false) ?: false
+        val language = LanguageCodec.decode(intent?.getStringExtra(EXTRA_LANGUAGE))
 
-        val notification = AlarmNotification.buildFiringNotification(this, alarmId, label)
+        // The notification's title and text resolve in the owner's chosen
+        // language, applied here because a notification is built outside the
+        // composition. The channel name is fixed at creation and cannot change.
+        val notificationContext = localizedFor(language)
+        val notification = AlarmNotification.buildFiringNotification(notificationContext, alarmId, label)
         ServiceCompat.startForeground(
             this,
             AlarmNotification.NOTIFICATION_ID,
@@ -69,18 +77,27 @@ class AlarmService : Service() {
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_LABEL = "alarm_label"
         const val EXTRA_SILENT_MODE = "silent_mode"
+        const val EXTRA_LANGUAGE = "language"
         private const val ACTION_STOP_SIGNALLING = "com.misaka9981.alarm.action.STOP_SIGNALLING"
 
         /**
          * Starts (or restarts) signalling for [alarmId]. [silentMode] is the
          * Alarm's Silent Mode setting; the adapter turns it into a [Signalling]
-         * in `core`.
+         * in `core`. [language] is the owner's chosen language, so the
+         * notification is built in it.
          */
-        fun start(context: Context, alarmId: String, alarmLabel: String, silentMode: Boolean) {
+        fun start(
+            context: Context,
+            alarmId: String,
+            alarmLabel: String,
+            silentMode: Boolean,
+            language: AppLanguage,
+        ) {
             val intent = Intent(context, AlarmService::class.java)
                 .putExtra(EXTRA_ALARM_ID, alarmId)
                 .putExtra(EXTRA_ALARM_LABEL, alarmLabel)
                 .putExtra(EXTRA_SILENT_MODE, silentMode)
+                .putExtra(EXTRA_LANGUAGE, LanguageCodec.encode(language))
             ContextCompat.startForegroundService(context, intent)
         }
 

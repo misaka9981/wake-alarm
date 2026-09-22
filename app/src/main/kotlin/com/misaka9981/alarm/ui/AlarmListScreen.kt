@@ -55,9 +55,11 @@ import com.misaka9981.alarm.core.AlarmCatalog
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.core.AlarmTime
+import com.misaka9981.alarm.core.NextTriggerDay
 import com.misaka9981.alarm.core.ReliabilityRequirement
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import java.time.DayOfWeek
+import java.time.ZonedDateTime
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -98,6 +100,10 @@ fun AlarmListScreen(
     var loaded by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Alarm?>(null) }
+    // Destructive changes ask first: a delete is irreversible, and disabling the
+    // last enabled Alarm would leave the owner with nothing to wake them.
+    var pendingDelete by remember { mutableStateOf<Alarm?>(null) }
+    var pendingDisable by remember { mutableStateOf<Alarm?>(null) }
 
     LaunchedEffect(repository) {
         catalog = AlarmCatalog.of(repository.load())
@@ -109,6 +115,18 @@ fun AlarmListScreen(
         catalog = next
         scheduler.reschedule(next.alarms)
         scope.launch { repository.save(next.alarms) }
+    }
+
+    /**
+     * Enabling is immediate; disabling the last enabled Alarm asks first, since
+     * from then on nothing would wake the owner.
+     */
+    fun requestEnabledChange(alarm: Alarm, enabled: Boolean) {
+        if (!enabled && catalog.isOnlyEnabled(alarm.id)) {
+            pendingDisable = alarm
+        } else {
+            commit(catalog.setEnabled(alarm.id, enabled))
+        }
     }
 
     Scaffold(
@@ -156,7 +174,7 @@ fun AlarmListScreen(
                         AlarmCard(
                             alarm = alarm,
                             onEdit = { editing = alarm },
-                            onEnabledChange = { commit(catalog.setEnabled(alarm.id, it)) },
+                            onEnabledChange = { requestEnabledChange(alarm, it) },
                         )
                     }
                 }
@@ -186,10 +204,61 @@ fun AlarmListScreen(
             },
             onDelete = {
                 editing = null
-                commit(catalog.delete(alarm.id))
+                pendingDelete = alarm
             },
         )
     }
+
+    pendingDelete?.let { alarm ->
+        ConfirmDialog(
+            title = stringResource(R.string.confirm_delete_alarm_title),
+            message = stringResource(R.string.confirm_delete_alarm_message),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = {
+                pendingDelete = null
+                commit(catalog.delete(alarm.id))
+            },
+            onDismiss = { pendingDelete = null },
+        )
+    }
+
+    pendingDisable?.let { alarm ->
+        ConfirmDialog(
+            title = stringResource(R.string.confirm_disable_last_alarm_title),
+            message = stringResource(R.string.confirm_disable_last_alarm_message),
+            confirmLabel = stringResource(R.string.action_disable),
+            onConfirm = {
+                pendingDisable = null
+                commit(catalog.setEnabled(alarm.id, false))
+            },
+            onDismiss = { pendingDisable = null },
+        )
+    }
+}
+
+/**
+ * A confirmation for a destructive change. Both the delete and the
+ * last-enabled-disable paths render the same dialog; only the words differ.
+ */
+@Composable
+private fun ConfirmDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = { Text(text = message) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(text = confirmLabel) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 /**
@@ -344,6 +413,13 @@ private fun AlarmCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                nextTriggerLabel(alarm)?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 if (alarm.silentMode) {
                     Text(
                         text = stringResource(R.string.alarm_silent_mode),
@@ -490,6 +566,25 @@ internal fun AlarmEditorDialog(
 }
 
 private fun formatTime(time: AlarmTime): String = "%02d:%02d".format(time.hour, time.minute)
+
+/**
+ * The relative label for when the Alarm next fires ("today 07:00", "tomorrow
+ * 07:00", "Wed 07:00"), or `null` when the Alarm is disabled and therefore not
+ * armed. Whether it is today, tomorrow, or a later weekday is decided in `core`
+ * ([NextTriggerDay]); this only formats the words.
+ */
+@Composable
+private fun nextTriggerLabel(alarm: Alarm): String? {
+    val day = NextTriggerDay.of(alarm, ZonedDateTime.now())
+    val time = formatTime(alarm.time)
+    return when (day) {
+        null -> null
+        NextTriggerDay.Today -> stringResource(R.string.alarm_next_today, time)
+        NextTriggerDay.Tomorrow -> stringResource(R.string.alarm_next_tomorrow, time)
+        is NextTriggerDay.Weekday ->
+            stringResource(R.string.alarm_next_weekday, shortDayName(day.day), time)
+    }
+}
 
 @Composable
 private fun formatRepeatDays(days: Set<DayOfWeek>): String {
