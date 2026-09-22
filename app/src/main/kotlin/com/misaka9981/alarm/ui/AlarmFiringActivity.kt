@@ -264,6 +264,7 @@ private fun FiringRoute(
             state = current,
             alarmLabel = formatFiringAlarm(alarm!!),
             anchorLabel = anchorLabel,
+            silentMode = alarm!!.silentMode,
             typed = typed,
             scanning = scanning,
             onTypedChange = { typed = it },

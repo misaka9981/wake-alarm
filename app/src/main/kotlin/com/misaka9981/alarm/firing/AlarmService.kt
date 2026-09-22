@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import com.misaka9981.alarm.core.Signalling
 
 /**
  * Thin Android adapter that keeps the Alarm's notification alive while it is
@@ -36,6 +37,7 @@ class AlarmService : Service() {
 
         val alarmId = intent?.getStringExtra(EXTRA_ALARM_ID).orEmpty()
         val label = intent?.getStringExtra(EXTRA_ALARM_LABEL) ?: getString(android.R.string.untitled)
+        val silentMode = intent?.getBooleanExtra(EXTRA_SILENT_MODE, false) ?: false
 
         val notification = AlarmNotification.buildFiringNotification(this, alarmId, label)
         ServiceCompat.startForeground(
@@ -50,7 +52,9 @@ class AlarmService : Service() {
         )
 
         if (playback == null) {
-            playback = AlarmPlayback(this).also { it.start() }
+            // Silent Mode is decided in `core`: a VibrationOnly Alarm starts the
+            // Vibrator but never a player, so it signals with no sound at all.
+            playback = AlarmPlayback(this, Signalling.of(silentMode)).also { it.start() }
         }
         return START_STICKY
     }
@@ -64,13 +68,19 @@ class AlarmService : Service() {
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_LABEL = "alarm_label"
+        const val EXTRA_SILENT_MODE = "silent_mode"
         private const val ACTION_STOP_SIGNALLING = "com.misaka9981.alarm.action.STOP_SIGNALLING"
 
-        /** Starts (or restarts) the ringing service for [alarmId]. */
-        fun start(context: Context, alarmId: String, alarmLabel: String) {
+        /**
+         * Starts (or restarts) signalling for [alarmId]. [silentMode] is the
+         * Alarm's Silent Mode setting; the adapter turns it into a [Signalling]
+         * in `core`.
+         */
+        fun start(context: Context, alarmId: String, alarmLabel: String, silentMode: Boolean) {
             val intent = Intent(context, AlarmService::class.java)
                 .putExtra(EXTRA_ALARM_ID, alarmId)
                 .putExtra(EXTRA_ALARM_LABEL, alarmLabel)
+                .putExtra(EXTRA_SILENT_MODE, silentMode)
             ContextCompat.startForegroundService(context, intent)
         }
 

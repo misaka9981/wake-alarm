@@ -50,4 +50,30 @@ class AlarmTest {
         assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), alarm.repeatDays)
         assertEquals(false, alarm.enabled)
     }
+
+    @Test
+    fun silentModeIsOffByDefault() {
+        val alarm = Alarm(
+            id = AlarmId("a"),
+            time = AlarmTime(6, 30),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+        )
+
+        assertEquals(false, alarm.silentMode)
+    }
+
+    @Test
+    fun silentModeIsPerAlarm() {
+        val ringing = Alarm(
+            id = AlarmId("ringing"),
+            time = AlarmTime(6, 30),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+        )
+        val silent = ringing.copy(silentMode = true)
+
+        assertEquals(false, ringing.silentMode)
+        assertEquals(true, silent.silentMode)
+    }
 }

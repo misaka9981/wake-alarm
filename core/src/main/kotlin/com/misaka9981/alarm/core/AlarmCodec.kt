@@ -13,16 +13,21 @@ class AlarmFormatException(message: String) : IllegalArgumentException(message)
  * This is the part of persistence that is decidable, so it is the part kept in
  * `core` and tested; the adapter only stores the string it produces. Versioning
  * the header lets a future format change detect old data instead of silently
- * misreading it.
+ * misreading it: version 2 added the per-Alarm Silent Mode flag, and version 1
+ * data still decodes with Silent Mode off so an existing configuration is not
+ * lost on upgrade.
  */
 object AlarmCodec {
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
+    private const val LEGACY_VERSION = 1
+    private const val FIELD_COUNT = 6
+    private const val LEGACY_FIELD_COUNT = 5
     private const val HEADER = "wake-alarm-alarms"
     private const val FIELD_SEPARATOR = '|'
     private const val DAY_SEPARATOR = ','
-    private const val ENABLED = "1"
-    private const val DISABLED = "0"
+    private const val SET = "1"
+    private const val UNSET = "0"
 
     fun encode(alarms: List<Alarm>): String = buildString {
         append(HEADER).append(' ').append(VERSION)
@@ -31,7 +36,8 @@ object AlarmCodec {
             append(alarm.id.value).append(FIELD_SEPARATOR)
             append(alarm.time.hour).append(FIELD_SEPARATOR)
             append(alarm.time.minute).append(FIELD_SEPARATOR)
-            append(if (alarm.enabled) ENABLED else DISABLED).append(FIELD_SEPARATOR)
+            append(if (alarm.enabled) SET else UNSET).append(FIELD_SEPARATOR)
+            append(if (alarm.silentMode) SET else UNSET).append(FIELD_SEPARATOR)
             append(
                 alarm.repeatDays
                     .sortedBy { it.value }
@@ -45,8 +51,8 @@ object AlarmCodec {
         if (lines.isEmpty()) {
             emptyList()
         } else {
-            requireVersion(lines.first())
-            lines.drop(1).map(::decodeAlarm)
+            val version = requireVersion(lines.first())
+            lines.drop(1).map { decodeAlarm(it, version) }
         }
     } catch (failure: AlarmFormatException) {
         throw failure
@@ -54,36 +60,47 @@ object AlarmCodec {
         throw AlarmFormatException("malformed Alarm data: ${failure.message}")
     }
 
-    private fun requireVersion(header: String) {
+    private fun requireVersion(header: String): Int {
         val parts = header.trim().split(' ')
         val version = parts.getOrNull(1)?.toIntOrNull()
-        if (parts.size != 2 || parts[0] != HEADER || version != VERSION) {
+        if (parts.size != 2 || parts[0] != HEADER || version !in SUPPORTED_VERSIONS) {
             throw AlarmFormatException("unrecognised Alarm data header: \"$header\"")
         }
+        return version!!
     }
 
-    private fun decodeAlarm(line: String): Alarm {
+    private fun decodeAlarm(line: String, version: Int): Alarm {
         val fields = line.split(FIELD_SEPARATOR)
-        if (fields.size != 5) {
-            throw AlarmFormatException("expected 5 fields, got ${fields.size}: \"$line\"")
+        // Version 1 had no Silent Mode field; it is the only difference.
+        val expectedFields = if (version == LEGACY_VERSION) LEGACY_FIELD_COUNT else FIELD_COUNT
+        if (fields.size != expectedFields) {
+            throw AlarmFormatException("expected $expectedFields fields, got ${fields.size}: \"$line\"")
         }
         val id = AlarmId(fields[0])
         val hour = fields[1].toIntOrNull()
             ?: throw AlarmFormatException("hour is not a number: \"${fields[1]}\"")
         val minute = fields[2].toIntOrNull()
             ?: throw AlarmFormatException("minute is not a number: \"${fields[2]}\"")
-        val enabled = when (fields[3]) {
-            ENABLED -> true
-            DISABLED -> false
-            else -> throw AlarmFormatException("enabled flag is not 0 or 1: \"${fields[3]}\"")
+        val enabled = decodeFlag(fields[3], "enabled")
+        val silentMode = if (version == LEGACY_VERSION) {
+            false
+        } else {
+            decodeFlag(fields[4], "silent")
         }
-        val repeatDays = decodeRepeatDays(fields[4], line)
+        val repeatDays = decodeRepeatDays(fields.last(), line)
         return Alarm(
             id = id,
             time = AlarmTime(hour, minute),
             repeatDays = repeatDays,
             enabled = enabled,
+            silentMode = silentMode,
         )
+    }
+
+    private fun decodeFlag(field: String, name: String): Boolean = when (field) {
+        SET -> true
+        UNSET -> false
+        else -> throw AlarmFormatException("$name flag is not 0 or 1: \"$field\"")
     }
 
     private fun decodeRepeatDays(field: String, line: String): Set<DayOfWeek> {
@@ -100,4 +117,6 @@ object AlarmCodec {
             }
         }.toSet()
     }
+
+    private val SUPPORTED_VERSIONS = setOf(LEGACY_VERSION, VERSION)
 }

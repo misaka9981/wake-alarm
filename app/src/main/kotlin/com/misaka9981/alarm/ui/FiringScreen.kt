@@ -39,6 +39,10 @@ import com.misaka9981.alarm.core.FiringState
  * There is no Snooze control anywhere — see `CONTEXT.md` and ADR-0002. Rendering
  * only; every decision lives in `core`.
  *
+ * [silentMode] is the Alarm's Silent Mode setting, rendered so the owner can see
+ * that this Alarm signals by vibration only. It changes nothing else on this
+ * screen: the Dismiss Challenge and the Physical Anchor are identical.
+ *
  * The Escape Hatch is deliberately not a visible button: it is reached by
  * long-pressing the Alarm title, which reveals the password prompt. Whether both
  * gestures have been made, and whether the password is correct, is decided by
@@ -58,6 +62,7 @@ fun FiringScreen(
     onEscapeHatchPassword: (String) -> Unit,
     onEscapeHatchCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    silentMode: Boolean = false,
 ) {
     val ringing = state as? FiringState.Ringing ?: return
     val challenge = ringing.challenge
@@ -77,6 +82,14 @@ fun FiringScreen(
                 detectTapGestures(onLongPress = { onEscapeHatchLongPress() })
             },
         )
+
+        if (silentMode) {
+            Text(
+                text = "Silent Mode — this Alarm signals by vibration only, with no sound. " +
+                    "The Dismiss Challenge and Physical Anchor are unchanged.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
 
         if (ringing.capExpired) {
             Text(

@@ -36,7 +36,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 if (alarm != null && alarm.enabled) {
                     AlarmScheduler(appContext).schedule(alarm)
-                    AlarmService.start(appContext, alarmId, labelFor(alarm.time))
+                    AlarmService.start(appContext, alarmId, labelFor(alarm.time), alarm.silentMode)
                     launchFiringActivity(appContext, alarmId, intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L))
                 }
             } finally {

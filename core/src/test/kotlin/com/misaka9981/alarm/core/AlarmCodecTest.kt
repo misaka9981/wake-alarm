@@ -18,6 +18,7 @@ class AlarmCodecTest {
             time = AlarmTime(9, 5),
             repeatDays = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
             enabled = false,
+            silentMode = true,
         ),
     )
 
@@ -70,6 +71,51 @@ class AlarmCodecTest {
     fun rejectsAnAlarmWithNoRepeatDays() {
         assertFailsWith<AlarmFormatException> {
             AlarmCodec.decode("wake-alarm-alarms 1\nid|07|00|1|")
+        }
+    }
+
+    @Test
+    fun readsLegacyDataWithSilentModeOff() {
+        val decoded = AlarmCodec.decode("wake-alarm-alarms 1\nlegacy|07|00|1|1,2")
+
+        assertEquals(1, decoded.size)
+        assertEquals(false, decoded.single().silentMode)
+        assertEquals(
+            Alarm(
+                id = AlarmId("legacy"),
+                time = AlarmTime(7, 0),
+                repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY),
+                enabled = true,
+                silentMode = false,
+            ),
+            decoded.single(),
+        )
+    }
+
+    @Test
+    fun roundTripsSilentMode() {
+        val silent = Alarm(
+            id = AlarmId("silent"),
+            time = AlarmTime(6, 0),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+            silentMode = true,
+        )
+
+        assertEquals(listOf(silent), AlarmCodec.decode(AlarmCodec.encode(listOf(silent))))
+    }
+
+    @Test
+    fun rejectsAMalformedSilentFlag() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 2\nid|07|00|1|2|1")
+        }
+    }
+
+    @Test
+    fun rejectsAV2RecordWithTheLegacyFieldCount() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 2\nid|07|00|1|1")
         }
     }
 }

@@ -23,13 +23,17 @@ data class AlarmTime(val hour: Int, val minute: Int) {
  * A scheduled event that wakes the owner at [time] on [repeatDays].
  *
  * An Alarm with no repeat days could never fire, so it cannot be constructed.
- * See `CONTEXT.md` for the canonical vocabulary.
+ * [silentMode] is the per-Alarm Silent Mode setting: when true the Alarm signals
+ * by vibration only, with no sound. It is off by default, changes only how the
+ * owner is signalled (see [Signalling]), and never changes how hard the Alarm is
+ * to dismiss. See `CONTEXT.md`.
  */
 data class Alarm(
     val id: AlarmId,
     val time: AlarmTime,
     val repeatDays: Set<DayOfWeek>,
     val enabled: Boolean,
+    val silentMode: Boolean = false,
 ) {
     init {
         require(repeatDays.isNotEmpty()) { "an Alarm must repeat on at least one day" }

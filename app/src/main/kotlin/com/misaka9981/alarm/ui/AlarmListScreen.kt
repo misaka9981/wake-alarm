@@ -221,6 +221,9 @@ private fun AlarmRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = formatTime(alarm.time), style = MaterialTheme.typography.headlineSmall)
             Text(text = formatRepeatDays(alarm.repeatDays), style = MaterialTheme.typography.bodyMedium)
+            if (alarm.silentMode) {
+                Text(text = "Silent Mode · vibration only", style = MaterialTheme.typography.bodySmall)
+            }
         }
         Switch(checked = alarm.enabled, onCheckedChange = onEnabledChange)
     }
@@ -242,6 +245,8 @@ private fun AlarmEditorDialog(
     )
     var repeatDays by remember { mutableStateOf(initial?.repeatDays ?: emptySet()) }
     var enabled by remember { mutableStateOf(initial?.enabled ?: true) }
+    // Silent Mode is off by default: a normal Alarm still rings.
+    var silentMode by remember { mutableStateOf(initial?.silentMode ?: false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -273,6 +278,13 @@ private fun AlarmEditorDialog(
                     Text(text = "Enabled", modifier = Modifier.weight(1f))
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Silent Mode (vibration only)",
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = silentMode, onCheckedChange = { silentMode = it })
+                }
             }
         },
         confirmButton = {
@@ -285,6 +297,7 @@ private fun AlarmEditorDialog(
                             time = AlarmTime(timePicker.hour, timePicker.minute),
                             repeatDays = repeatDays,
                             enabled = enabled,
+                            silentMode = silentMode,
                         ),
                     )
                 },

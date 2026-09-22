@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import com.misaka9981.alarm.core.Signalling
 import com.misaka9981.alarm.core.SoundCap
 import com.misaka9981.alarm.core.VolumeRamp
 import kotlin.time.Duration.Companion.milliseconds
@@ -26,9 +27,15 @@ import kotlin.time.Duration.Companion.milliseconds
  * though: once the cap expires the sound and vibration stop on their own, while
  * the Alarm stays uncleared and its notification stays. See the spec's "Sound
  * cap, Streak, and the Escape Hatch".
+ *
+ * [signalling] is Silent Mode's only effect: [Signalling.VibrationOnly] starts the
+ * [Vibrator] but never a [MediaPlayer], so the Alarm signals with no sound at all.
+ * The same [SoundCap] then ends the vibration, so the sound cap becomes a
+ * vibration cap. Signalling never changes how hard the Alarm is to dismiss.
  */
 class AlarmPlayback(
     context: Context,
+    private val signalling: Signalling = Signalling.SoundAndVibration,
     private val soundCap: SoundCap = SoundCap(),
 ) {
     private val appContext = context.applicationContext
@@ -38,11 +45,11 @@ class AlarmPlayback(
     private val vibrator: Vibrator? = vibratorFor(appContext)
 
     private var player: MediaPlayer? = null
-    private var signalling = false
+    private var signallingActive = false
 
     private val volumeTick = object : Runnable {
         override fun run() {
-            if (!signalling) return
+            if (!signallingActive) return
             if (soundCap.hasExpired(elapsed())) {
                 // The cap stops the noise but does not clear the Alarm: the
                 // service keeps the ongoing notification until dismissal.
@@ -54,15 +61,17 @@ class AlarmPlayback(
         }
     }
 
-    /** Starts ringing and vibrating, with the volume already at its start fraction. */
+    /** Starts signalling — ringing and/or vibrating — at its starting volume. */
     fun start() {
-        raiseAlarmStreamToMaximum()
-        player = createPlayer()?.also {
-            applyRampedVolume()
-            it.start()
+        if (signalling.playsSound) {
+            raiseAlarmStreamToMaximum()
+            player = createPlayer()?.also {
+                applyRampedVolume()
+                it.start()
+            }
         }
         startVibrating()
-        signalling = true
+        signallingActive = true
         handler.post(volumeTick)
     }
 
@@ -73,7 +82,7 @@ class AlarmPlayback(
     }
 
     private fun stopSignalling() {
-        signalling = false
+        signallingActive = false
         player?.let { current ->
             try {
                 current.stop()
