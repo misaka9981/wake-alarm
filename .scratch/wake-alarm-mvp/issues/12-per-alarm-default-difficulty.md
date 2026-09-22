@@ -52,7 +52,8 @@ How it was verified:
   guard. `FiringSessionTest` proves the firing's first challenge sits at the given
   base difficulty and escalates from there.
 - `:app:assembleDebug` green; APK produced.
-- CI: run in progress; the evidence is recorded in the follow-up commit.
+- CI: [run 35672231005](https://github.com/misaka9981/wake-alarm/actions/runs/35672231005)
+  green — core tests, debug APK build, and Release publish all succeeded.
 
 Acceptance:
 
