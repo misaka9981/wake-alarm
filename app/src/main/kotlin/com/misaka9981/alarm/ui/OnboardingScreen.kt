@@ -23,9 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.core.AlarmTime
@@ -64,6 +67,7 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var step by remember {
         mutableStateOf(onboarding.missingSteps.firstOrNull() ?: OnboardingStep.WakeTime)
     }
@@ -77,6 +81,11 @@ fun OnboardingScreen(
         initialMinute = onboarding.firstAlarm?.time?.minute ?: 0,
         is24Hour = true,
     )
+    val anchorPrefix = stringResource(R.string.anchor_default_label)
+    val scanningLabel = stringResource(R.string.status_scanning)
+    val scanCancelledLabel = stringResource(R.string.status_scan_cancelled)
+    val passwordBlankLabel = stringResource(R.string.onboarding_password_blank)
+    val passwordMismatchLabel = stringResource(R.string.onboarding_password_mismatch)
 
     Column(
         modifier = modifier
@@ -85,18 +94,24 @@ fun OnboardingScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = "Welcome to Wake Alarm", style = MaterialTheme.typography.headlineSmall)
         Text(
-            text = "Set this up once; the app is then ready for a full night's sleep.",
+            text = stringResource(R.string.onboarding_welcome),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = stringResource(R.string.onboarding_intro),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(text = stepProgress(step), style = MaterialTheme.typography.labelLarge)
 
         when (step) {
             OnboardingStep.WakeTime -> {
-                Text(text = "Wake time", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "Your first Alarm repeats every day and rings by default.",
+                    text = stringResource(R.string.onboarding_wake_time),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.onboarding_wake_time_detail),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 TimePicker(state = timePicker)
@@ -114,55 +129,60 @@ fun OnboardingScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(text = "Set wake time and create Alarm") }
+                ) { Text(text = stringResource(R.string.onboarding_set_wake_time)) }
             }
 
             OnboardingStep.PhysicalAnchor -> {
-                Text(text = "Physical Anchor", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "Place a real-world object away from the bed, then scan it. " +
-                        "Dismissing an Alarm will require reaching it.",
+                    text = stringResource(R.string.anchor_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.onboarding_anchor_detail),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Button(
                     onClick = {
                         val alarmId = firstAlarmId ?: return@Button
                         scope.launch {
-                            anchorStatus = "Scanning…"
+                            anchorStatus = scanningLabel
                             val payload = scanner.scan()
                             if (payload == null) {
-                                anchorStatus = "Scan cancelled."
+                                anchorStatus = scanCancelledLabel
                                 return@launch
                             }
                             val code = AnchorCode(payload)
                             val catalog = anchorRepository.load()
-                            val label = catalog.findByCode(code)?.label ?: anchorLabelFor(payload)
+                            val label = catalog.findByCode(code)?.label
+                                ?: anchorLabelFor(payload, anchorPrefix)
                             anchorRepository.save(
                                 catalog
                                     .set(PhysicalAnchor(code = code, label = label))
                                     .bind(alarmId, code),
                             )
-                            anchorStatus = "Physical Anchor \"$label\" bound."
+                            anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
                             step = OnboardingStep.EscapeHatchPassword
                         }
                     },
                     enabled = firstAlarmId != null,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(text = "Scan Physical Anchor") }
+                ) { Text(text = stringResource(R.string.anchor_scan)) }
                 anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
             }
 
             OnboardingStep.EscapeHatchPassword -> {
-                Text(text = "Escape Hatch password", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "The Escape Hatch is a deliberately effortful last resort: a " +
-                        "hidden long-press plus this password force-silences an Alarm.",
+                    text = stringResource(R.string.onboarding_escape_hatch_password),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.onboarding_escape_hatch_detail),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(text = "Password") },
+                    label = { Text(text = stringResource(R.string.label_password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -171,7 +191,7 @@ fun OnboardingScreen(
                 OutlinedTextField(
                     value = confirmation,
                     onValueChange = { confirmation = it },
-                    label = { Text(text = "Confirm password") },
+                    label = { Text(text = stringResource(R.string.onboarding_confirm_password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -181,10 +201,10 @@ fun OnboardingScreen(
                     onClick = {
                         when {
                             password.isBlank() ->
-                                passwordStatus = "The password must not be blank."
+                                passwordStatus = passwordBlankLabel
 
                             password != confirmation ->
-                                passwordStatus = "The passwords do not match."
+                                passwordStatus = passwordMismatchLabel
 
                             else -> scope.launch {
                                 escapeHatchRepository.save(EscapeHatchPassword(password))
@@ -193,22 +213,22 @@ fun OnboardingScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(text = "Set password and finish") }
+                ) { Text(text = stringResource(R.string.onboarding_set_password_and_finish)) }
                 passwordStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
             }
         }
 
         HorizontalDivider()
         Text(
-            text = "Setup is complete only when the wake time, the Physical Anchor, " +
-                "and the password are all set.",
+            text = stringResource(R.string.onboarding_footer),
             style = MaterialTheme.typography.bodySmall,
         )
     }
 }
 
+@Composable
 private fun stepProgress(step: OnboardingStep): String {
     val number = step.ordinal + 1
     val total = OnboardingStep.entries.size
-    return "Step $number of $total"
+    return stringResource(R.string.onboarding_step_progress, number, total)
 }

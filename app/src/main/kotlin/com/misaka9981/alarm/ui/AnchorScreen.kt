@@ -24,7 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmRepository
@@ -54,6 +57,7 @@ fun AnchorScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var alarms by remember { mutableStateOf<List<Alarm>>(emptyList()) }
     var catalog by remember { mutableStateOf(AnchorCatalog.empty) }
     var loaded by remember { mutableStateOf(false) }
@@ -72,6 +76,8 @@ fun AnchorScreen(
         anchorRepository.save(next)
     }
 
+    val anchorPrefix = stringResource(R.string.anchor_default_label)
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -79,10 +85,9 @@ fun AnchorScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = "Physical Anchor", style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.anchor_title), style = MaterialTheme.typography.headlineSmall)
         Text(
-            text = "Scan a real-world object away from the bed to set it, then scan " +
-                "again to prove reaching it.",
+            text = stringResource(R.string.anchor_dev_hint),
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -92,12 +97,12 @@ fun AnchorScreen(
         }
 
         if (alarms.isEmpty()) {
-            Text(text = "Create an Alarm first.")
-            TextButton(onClick = onClose) { Text(text = "Close") }
+            Text(text = stringResource(R.string.anchor_create_alarm_first))
+            TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
             return@Column
         }
 
-        Text(text = "Alarm", style = MaterialTheme.typography.titleSmall)
+        Text(text = stringResource(R.string.anchor_alarm_label), style = MaterialTheme.typography.titleSmall)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,51 +126,57 @@ fun AnchorScreen(
             onClick = {
                 if (alarmId == null) return@Button
                 scope.launch {
-                    status = "Scanning…"
+                    status = context.getString(R.string.status_scanning)
                     val payload = scanner.scan()
                     if (payload == null) {
-                        status = "Scan cancelled."
+                        status = context.getString(R.string.status_scan_cancelled)
                         return@launch
                     }
                     val code = AnchorCode(payload)
-                    val label = catalog.findByCode(code)?.label ?: anchorLabelFor(payload)
+                    val label = catalog.findByCode(code)?.label
+                        ?: anchorLabelFor(payload, anchorPrefix)
                     val next = catalog
                         .set(PhysicalAnchor(code = code, label = label))
                         .bind(alarmId, code)
                     commit(next)
-                    status = "Set \"$label\" and bound it to ${alarmName(alarms, alarmId)}."
+                    status = context.getString(
+                        R.string.anchor_set_status,
+                        label,
+                        alarmName(alarms, alarmId),
+                    )
                 }
             },
             enabled = alarmId != null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = "Set Physical Anchor from scan") }
+        ) { Text(text = stringResource(R.string.anchor_set_from_scan)) }
 
         Button(
             onClick = {
                 if (alarmId == null) return@Button
                 scope.launch {
-                    status = "Scanning…"
+                    status = context.getString(R.string.status_scanning)
                     status = when (val result = catalog.gateFor(alarmId, scanner).scan()) {
-                        is AnchorScanResult.Reached -> "Anchor reached."
+                        is AnchorScanResult.Reached ->
+                            context.getString(R.string.anchor_reached_status)
                         is AnchorScanResult.NotReached ->
                             if (result.scanned == null) {
-                                "Scan cancelled."
+                                context.getString(R.string.status_scan_cancelled)
                             } else {
-                                "Not the bound Physical Anchor."
+                                context.getString(R.string.anchor_not_bound)
                             }
                     }
                 }
             },
             enabled = alarmId != null && catalog.anchorFor(alarmId) != null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = "Reach Anchor from scan") }
+        ) { Text(text = stringResource(R.string.anchor_reach_from_scan)) }
 
         status?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
 
         HorizontalDivider()
-        Text(text = "Anchors", style = MaterialTheme.typography.titleSmall)
+        Text(text = stringResource(R.string.anchor_list_title), style = MaterialTheme.typography.titleSmall)
         if (catalog.anchors.isEmpty()) {
-            Text(text = "None yet.")
+            Text(text = stringResource(R.string.anchor_list_empty))
         } else {
             catalog.anchors.forEach { anchor ->
                 AnchorRow(
@@ -179,7 +190,7 @@ fun AnchorScreen(
             }
         }
 
-        TextButton(onClick = onClose) { Text(text = "Close (development entry point)") }
+        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_dev_close)) }
     }
 }
 
@@ -194,28 +205,36 @@ private fun AnchorRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = anchor.label, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = "Code: ${anchor.code.value.take(32)}" +
-                        if (anchor.code.value.length > 32) "…" else "",
+                    text = stringResource(
+                        R.string.anchor_code,
+                        anchor.code.value.take(32) +
+                            if (anchor.code.value.length > 32) "…" else "",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
                     text = if (boundAlarms.isEmpty()) {
-                        "Not bound to an Alarm"
+                        stringResource(R.string.anchor_not_bound_to_alarm)
                     } else {
-                        "Bound to " + boundAlarms.joinToString(", ") { formatAnchorAlarm(it) }
+                        stringResource(
+                            R.string.anchor_bound_to,
+                            boundAlarms.joinToString(
+                                stringResource(R.string.list_separator),
+                            ) { formatAnchorAlarm(it) },
+                        )
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            TextButton(onClick = onDelete) { Text(text = "Delete") }
+            TextButton(onClick = onDelete) { Text(text = stringResource(R.string.action_delete)) }
         }
         HorizontalDivider()
     }
 }
 
-internal fun anchorLabelFor(payload: String): String {
+internal fun anchorLabelFor(payload: String, defaultLabel: String): String {
     val cleaned = payload.filterNot { it.isWhitespace() || it == '|' }.take(8)
-    return if (cleaned.isEmpty()) "Anchor" else "Anchor $cleaned"
+    return if (cleaned.isEmpty()) defaultLabel else "$defaultLabel $cleaned"
 }
 
 private fun formatAnchorAlarm(alarm: Alarm): String = "%02d:%02d".format(alarm.time.hour, alarm.time.minute)

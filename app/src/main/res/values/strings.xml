@@ -1,11 +1,183 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher label only. Keep in sync with AppInfo.NAME in :core, which the
-         placeholder screen renders. -->
-    <string name="app_name">Wake Alarm</string>
+    <!-- Default resources are Chinese, so every device whose locale is not
+         English displays Chinese. res/values-en holds the English text. The
+         launcher label is the only identity string; :core AppInfo.NAME stays
+         the English "Wake Alarm" constant. -->
+    <string name="app_name">唤醒闹钟</string>
 
     <!-- The firing notification channel. -->
-    <string name="alarm_channel_name">Alarm</string>
-    <string name="alarm_channel_description">A ringing Alarm that is dismissed only by its Dismiss Challenge and Physical Anchor.</string>
-    <string name="alarm_notification_title">Alarm ringing</string>
+    <string name="alarm_channel_name">闹钟</string>
+    <string name="alarm_channel_description">响铃的闹钟，只有完成解除挑战并到达实体锚点才能停止。</string>
+    <string name="alarm_notification_title">闹钟正在响</string>
+
+    <!-- Shared actions, labels, and status text. -->
+    <string name="action_close">关闭</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_save">保存</string>
+    <string name="action_delete">删除</string>
+    <string name="action_back">返回</string>
+    <string name="action_grant">授予</string>
+    <string name="action_submit">提交</string>
+    <string name="action_dev_close">关闭（开发入口）</string>
+    <string name="label_your_answer">你的答案</string>
+    <string name="label_password">密码</string>
+    <string name="status_loading">正在加载…</string>
+    <string name="status_scanning">正在扫描…</string>
+    <string name="status_scan_cancelled">已取消扫描。</string>
+    <string name="wrong_answer_hint">答错了——下一题会更难。</string>
+    <string name="duration_minutes_seconds">%1$d 分 %2$d 秒</string>
+    <string name="duration_seconds">%1$d 秒</string>
+    <string name="wrong_answers_none">没有答错</string>
+    <string name="wrong_answers_one">答错 1 次</string>
+    <string name="wrong_answers_many">答错 %1$d 次</string>
+
+    <!-- Repeat-day chips. Fixed short names; "Every day" is the all-selected case. -->
+    <string name="day_mon">周一</string>
+    <string name="day_tue">周二</string>
+    <string name="day_wed">周三</string>
+    <string name="day_thu">周四</string>
+    <string name="day_fri">周五</string>
+    <string name="day_sat">周六</string>
+    <string name="day_sun">周日</string>
+    <string name="alarm_repeat_every_day">每天</string>
+    <string name="list_separator">、</string>
+
+    <!-- Alarm list. -->
+    <string name="alarms_empty">还没有闹钟。点按 + 添加一个。</string>
+    <string name="nav_diagnostic_log">诊断日志</string>
+    <string name="nav_statistics">统计</string>
+    <string name="nav_settings">设置</string>
+    <string name="reliability_warning">⚠ 可靠性：缺少 %1$d 项——去修复</string>
+    <string name="dev_dismiss_challenge">DEV: 解除挑战</string>
+    <string name="dev_physical_anchor">DEV: 实体锚点</string>
+    <string name="dev_fire_alarm">DEV: 触发闹钟</string>
+    <string name="alarm_silent_mode">静音模式 · 仅振动</string>
+    <string name="alarm_starts_at_difficulty">起始难度 %1$d</string>
+    <string name="alarm_editor_title_new">新建闹钟</string>
+    <string name="alarm_editor_title_edit">编辑闹钟</string>
+    <string name="alarm_editor_repeat">重复</string>
+    <string name="alarm_editor_enabled">启用</string>
+    <string name="alarm_editor_silent_mode">静音模式（仅振动）</string>
+    <string name="alarm_editor_default_difficulty">默认难度（难度升级的起点）</string>
+
+    <!-- Dismiss Challenge. -->
+    <string name="dismiss_challenge_title">解除挑战</string>
+    <string name="dismiss_challenge_progress">难度 %1$d · %2$d 秒 · 答错 %3$d 次</string>
+    <string name="dismiss_challenge_solved">解除挑战已完成。</string>
+    <string name="alarm_dismissed">闹钟已解除。</string>
+
+    <!-- Firing screen. -->
+    <string name="firing_alarm_label">闹钟 — %1$s</string>
+    <string name="firing_silent_mode">静音模式——该闹钟仅振动、不发声。解除挑战与实体锚点要求不变。</string>
+    <string name="firing_cap_expired">为避免无限响铃，信号已停止，但闹钟尚未解除。请完成解除挑战并到达实体锚点以解除。</string>
+    <string name="firing_challenge_progress">解除挑战 · 难度 %1$d · %2$d 秒 · 答错 %3$d 次</string>
+    <string name="firing_alarm_missing">该闹钟已不存在。</string>
+    <string name="firing_stop_alarm">停止闹钟</string>
+    <string name="anchor_title">实体锚点</string>
+    <string name="anchor_reached_named">已到达锚点：%1$s。</string>
+    <string name="anchor_reached">已到达实体锚点。</string>
+    <string name="anchor_reach_named">请到达你的实体锚点：%1$s。</string>
+    <string name="anchor_none_bound">该闹钟未绑定实体锚点。</string>
+    <string name="anchor_not_bound">不是绑定的实体锚点。</string>
+    <string name="anchor_scan">扫描实体锚点</string>
+
+    <!-- Escape Hatch. -->
+    <string name="escape_hatch_title">应急出口</string>
+    <string name="escape_hatch_description">无需完成解除挑战或到达实体锚点即可强制静音闹钟，并会中断当天的连续天数。只有输入正确密码才能静音。</string>
+    <string name="escape_hatch_force_silence">强制静音</string>
+    <string name="escape_hatch_used">已使用应急出口。</string>
+    <string name="escape_hatch_used_detail">闹钟已静音，当天的连续天数已中断。</string>
+
+    <!-- First-run onboarding. -->
+    <string name="onboarding_welcome">欢迎使用唤醒闹钟</string>
+    <string name="onboarding_intro">只需设置一次，之后即可安心睡整晚。</string>
+    <string name="onboarding_step_progress">第 %1$d 步，共 %2$d 步</string>
+    <string name="onboarding_wake_time">起床时间</string>
+    <string name="onboarding_wake_time_detail">你的第一个闹钟每天重复，默认响铃。</string>
+    <string name="onboarding_set_wake_time">设置起床时间并创建闹钟</string>
+    <string name="onboarding_anchor_detail">把一件真实物品放在远离床的地方，然后扫描它。解除闹钟时需要到达该处。</string>
+    <string name="onboarding_anchor_bound">已绑定实体锚点「%1$s」。</string>
+    <string name="onboarding_escape_hatch_password">应急出口密码</string>
+    <string name="onboarding_escape_hatch_detail">应急出口是刻意费力的最后手段：隐藏的长按加上此密码才能强制静音闹钟。</string>
+    <string name="onboarding_confirm_password">确认密码</string>
+    <string name="onboarding_password_blank">密码不能为空。</string>
+    <string name="onboarding_password_mismatch">两次输入的密码不一致。</string>
+    <string name="onboarding_set_password_and_finish">设置密码并完成</string>
+    <string name="onboarding_footer">只有起床时间、实体锚点与密码全部设置完成，设置才算完成。</string>
+
+    <!-- Reliability guarantees. -->
+    <string name="reliability_title">可靠性</string>
+    <string name="reliability_intro">闹钟依赖以下系统保证。任何缺失项都会列在下方；请授予它们，以确保闹钟可靠触发。</string>
+    <string name="reliability_all_granted">所有必需的保证均已授予。</string>
+    <string name="reliability_missing_warning">警告：缺少 %1$d 项必需保证——闹钟可能不会触发。</string>
+    <string name="reliability_not_needed">此 Android 版本不需要。</string>
+    <string name="reliability_granted">已授予。</string>
+    <string name="reliability_refresh">刷新状态</string>
+    <string name="requirement_exact_alarm">精确闹钟</string>
+    <string name="requirement_full_screen_intent">全屏通知</string>
+    <string name="requirement_battery_optimisation">电池优化豁免</string>
+    <string name="requirement_do_not_disturb">免打扰访问权限</string>
+    <string name="guidance_exact_alarm">缺少它时，闹钟只是近似时间，可能延迟。</string>
+    <string name="guidance_full_screen_intent">缺少它时，闹钟无法在锁屏上显示。</string>
+    <string name="guidance_battery_optimisation">缺少它时，系统可能推迟或丢弃闹钟。</string>
+    <string name="guidance_do_not_disturb">缺少它时，静音的手机可能会隐藏闹钟。</string>
+
+    <!-- Settings. -->
+    <string name="settings_title">设置</string>
+    <string name="settings_wake_time">起床时间</string>
+    <string name="settings_alarm_at">闹钟 %1$s</string>
+    <string name="settings_no_alarm">还没有闹钟。</string>
+    <string name="settings_change_wake_time">更改起床时间</string>
+    <string name="settings_physical_anchor">实体锚点</string>
+    <string name="settings_anchor_bound">已绑定：「%1$s」</string>
+    <string name="settings_anchor_none">未绑定实体锚点。</string>
+    <string name="settings_change_anchor">更改实体锚点</string>
+    <string name="settings_escape_hatch_password">应急出口密码</string>
+    <string name="settings_password_set">已设置密码。</string>
+    <string name="settings_password_none">未设置密码。</string>
+    <string name="settings_change_password">更改密码</string>
+    <string name="change_password_new">新密码</string>
+    <string name="change_password_confirm">确认新密码</string>
+
+    <!-- Statistics. -->
+    <string name="statistics_title">统计</string>
+    <string name="statistics_current_streak">当前连续天数</string>
+    <string name="statistics_streak_none">暂无连续天数</string>
+    <string name="statistics_streak_days">%1$d 天</string>
+    <string name="statistics_average_wake_time">平均起床时间</string>
+    <string name="statistics_no_dismissals">还没有解除记录</string>
+    <string name="statistics_recent_dismissals">最近的解除记录</string>
+    <string name="statistics_empty">还没有闹钟被解除。每次解除都会在这里汇总。</string>
+    <string name="statistics_dismissed_at">解除于 %1$s</string>
+    <string name="statistics_rang_for">响铃 %1$s</string>
+
+    <!-- Diagnostic Log. -->
+    <string name="diagnostic_log_title">诊断日志</string>
+    <string name="diagnostic_log_empty">还没有闹钟触发。每次触发都会记录在这里。</string>
+    <string name="diagnostic_log_showing">显示最近 %1$d 条触发记录。</string>
+    <string name="diagnostic_log_scheduled">计划 %1$s</string>
+    <string name="diagnostic_log_time_not_recorded">未记录时间</string>
+    <string name="diagnostic_log_fired">触发 %1$s</string>
+    <string name="diagnostic_log_signalled">响铃 %1$s · 音量 %2$d%%</string>
+    <string name="diagnostic_log_outcome_dismissed">已通过解除挑战与实体锚点解除</string>
+    <string name="diagnostic_log_outcome_cap_expired">响铃上限到期——仍未解除</string>
+    <string name="diagnostic_log_outcome_escape_hatch">已使用应急出口</string>
+    <string name="diagnostic_log_permissions_all">所有可靠性权限均已授予</string>
+    <string name="diagnostic_log_permissions_missing">触发时缺少：%1$s</string>
+
+    <!-- Physical Anchor development screen. -->
+    <string name="anchor_dev_hint">扫描一件远离床的真实物品来设置它，然后再次扫描以证明已到达。</string>
+    <string name="anchor_create_alarm_first">请先创建一个闹钟。</string>
+    <string name="anchor_alarm_label">闹钟</string>
+    <string name="anchor_set_from_scan">通过扫描设置实体锚点</string>
+    <string name="anchor_set_status">已设置「%1$s」并绑定到 %2$s。</string>
+    <string name="anchor_reached_status">已到达锚点。</string>
+    <string name="anchor_reach_from_scan">通过扫描到达锚点</string>
+    <string name="anchor_list_title">锚点</string>
+    <string name="anchor_list_empty">暂无。</string>
+    <string name="anchor_code">代码：%1$s</string>
+    <string name="anchor_not_bound_to_alarm">未绑定闹钟</string>
+    <string name="anchor_bound_to">已绑定到 %1$s</string>
+    <string name="anchor_default_label">锚点</string>
 </resources>

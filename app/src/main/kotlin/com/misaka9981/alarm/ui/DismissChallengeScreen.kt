@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.ArithmeticChallengeGenerator
 import com.misaka9981.alarm.core.DismissalEvent
 import com.misaka9981.alarm.core.DismissalSession
@@ -91,31 +93,38 @@ private fun OngoingChallenge(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Dismiss Challenge", style = MaterialTheme.typography.headlineSmall)
         Text(
-            text = "Difficulty ${state.difficulty} · ${state.elapsed.inWholeSeconds}s · " +
-                "${state.wrongAnswers} wrong",
+            text = stringResource(R.string.dismiss_challenge_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = stringResource(
+                R.string.dismiss_challenge_progress,
+                state.difficulty,
+                state.elapsed.inWholeSeconds.toInt(),
+                state.wrongAnswers,
+            ),
             style = MaterialTheme.typography.bodySmall,
         )
         Text(text = state.challenge.problem, style = MaterialTheme.typography.displaySmall)
         state.feedback?.let {
             Text(
-                text = "Wrong answer — the next challenge is harder.",
+                text = stringResource(R.string.wrong_answer_hint),
                 color = MaterialTheme.colorScheme.error,
             )
         }
         OutlinedTextField(
             value = typed,
             onValueChange = onTypedChange,
-            label = { Text(text = "Your answer") },
+            label = { Text(text = stringResource(R.string.label_your_answer)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
         )
         Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Submit")
+            Text(text = stringResource(R.string.action_submit))
         }
-        TextButton(onClick = onClose) { Text(text = "Close (development entry point)") }
+        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_dev_close)) }
     }
 }
 
@@ -128,7 +137,7 @@ private fun DismissedChallenge(onClose: () -> Unit, modifier: Modifier = Modifie
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Alarm dismissed.", style = MaterialTheme.typography.headlineSmall)
-        Button(onClick = onClose) { Text(text = "Close") }
+        Text(text = stringResource(R.string.alarm_dismissed), style = MaterialTheme.typography.headlineSmall)
+        Button(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
     }
 }

@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.ReliabilityCheck
 import com.misaka9981.alarm.core.ReliabilityRequirement
 import com.misaka9981.alarm.reliability.AndroidReliabilityGrants
@@ -58,18 +60,17 @@ fun ReliabilityScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = "Reliability", style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.reliability_title), style = MaterialTheme.typography.headlineSmall)
         Text(
-            text = "An Alarm depends on these platform guarantees. Any that are missing " +
-                "are listed below; grant them so the Alarm fires reliably.",
+            text = stringResource(R.string.reliability_intro),
             style = MaterialTheme.typography.bodySmall,
         )
 
         Text(
             text = if (missing.isEmpty()) {
-                "All required guarantees are granted."
+                stringResource(R.string.reliability_all_granted)
             } else {
-                "Warning: ${missing.size} required guarantee(s) missing — an Alarm may not fire."
+                stringResource(R.string.reliability_missing_warning, missing.size)
             },
             color = if (missing.isEmpty()) {
                 MaterialTheme.colorScheme.primary
@@ -85,8 +86,8 @@ fun ReliabilityScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                 Text(text = requirementLabel(requirement), style = MaterialTheme.typography.titleSmall)
                 Text(
                     text = when {
-                        !applies -> "Not needed on this Android version."
-                        granted -> "Granted."
+                        !applies -> stringResource(R.string.reliability_not_needed)
+                        granted -> stringResource(R.string.reliability_granted)
                         else -> requirementGuidance(requirement)
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -98,7 +99,7 @@ fun ReliabilityScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                                 ReliabilityLauncher.intentFor(context, requirement)
                                     ?.let { context.startActivity(it) }
                             },
-                        ) { Text(text = "Grant") }
+                        ) { Text(text = stringResource(R.string.action_grant)) }
                     }
                 }
             }
@@ -106,22 +107,28 @@ fun ReliabilityScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         }
 
         Button(onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Refresh status")
+            Text(text = stringResource(R.string.reliability_refresh))
         }
-        TextButton(onClick = onClose) { Text(text = "Close") }
+        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
     }
 }
 
-private fun requirementLabel(requirement: ReliabilityRequirement): String = when (requirement) {
-    ReliabilityRequirement.ExactAlarm -> "Exact alarms"
-    ReliabilityRequirement.FullScreenIntent -> "Full-screen intents"
-    ReliabilityRequirement.BatteryOptimisation -> "Battery optimisation exemption"
-    ReliabilityRequirement.DoNotDisturbAccess -> "Do Not Disturb access"
-}
+@Composable
+private fun requirementLabel(requirement: ReliabilityRequirement): String = stringResource(
+    when (requirement) {
+        ReliabilityRequirement.ExactAlarm -> R.string.requirement_exact_alarm
+        ReliabilityRequirement.FullScreenIntent -> R.string.requirement_full_screen_intent
+        ReliabilityRequirement.BatteryOptimisation -> R.string.requirement_battery_optimisation
+        ReliabilityRequirement.DoNotDisturbAccess -> R.string.requirement_do_not_disturb
+    },
+)
 
-private fun requirementGuidance(requirement: ReliabilityRequirement): String = when (requirement) {
-    ReliabilityRequirement.ExactAlarm -> "Without it the Alarm is only approximate and may be late."
-    ReliabilityRequirement.FullScreenIntent -> "Without it the Alarm cannot appear over the lock screen."
-    ReliabilityRequirement.BatteryOptimisation -> "Without it the system may defer or drop the Alarm."
-    ReliabilityRequirement.DoNotDisturbAccess -> "Without it a silent phone can hide the Alarm."
-}
+@Composable
+private fun requirementGuidance(requirement: ReliabilityRequirement): String = stringResource(
+    when (requirement) {
+        ReliabilityRequirement.ExactAlarm -> R.string.guidance_exact_alarm
+        ReliabilityRequirement.FullScreenIntent -> R.string.guidance_full_screen_intent
+        ReliabilityRequirement.BatteryOptimisation -> R.string.guidance_battery_optimisation
+        ReliabilityRequirement.DoNotDisturbAccess -> R.string.guidance_do_not_disturb
+    },
+)

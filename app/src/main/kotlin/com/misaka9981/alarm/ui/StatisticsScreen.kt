@@ -21,7 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.DismissalRecord
 import com.misaka9981.alarm.core.WakeStatistics
 import com.misaka9981.alarm.data.DataStoreStatistics
@@ -54,17 +56,20 @@ fun StatisticsScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Statistics",
+                text = stringResource(R.string.statistics_title),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onClose) { Text(text = "Back") }
+            TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_back)) }
         }
         HorizontalDivider()
 
         val current = statistics
         when {
-            current == null -> Text(text = "Loading…", modifier = Modifier.padding(24.dp))
+            current == null -> Text(
+                text = stringResource(R.string.status_loading),
+                modifier = Modifier.padding(24.dp),
+            )
 
             else -> StatisticsBody(current, modifier = modifier)
         }
@@ -77,16 +82,22 @@ private fun StatisticsBody(statistics: WakeStatistics, modifier: Modifier = Modi
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        item { StatisticRow("Current Streak", streakLabel(statistics.currentStreak)) }
         item {
             StatisticRow(
-                "Average wake time",
-                statistics.averageWakeTime?.let(clockFormat::format) ?: "No dismissals yet",
+                stringResource(R.string.statistics_current_streak),
+                streakLabel(statistics.currentStreak),
+            )
+        }
+        item {
+            StatisticRow(
+                stringResource(R.string.statistics_average_wake_time),
+                statistics.averageWakeTime?.let(clockFormat::format)
+                    ?: stringResource(R.string.statistics_no_dismissals),
             )
         }
         item {
             Text(
-                text = "Recent dismissals",
+                text = stringResource(R.string.statistics_recent_dismissals),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
@@ -94,7 +105,7 @@ private fun StatisticsBody(statistics: WakeStatistics, modifier: Modifier = Modi
         if (statistics.recentDismissals.isEmpty()) {
             item {
                 Text(
-                    text = "No Alarms have been dismissed yet. Each dismissal is summarised here.",
+                    text = stringResource(R.string.statistics_empty),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
@@ -129,31 +140,37 @@ private fun DismissalRow(dismissal: DismissalRecord) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(text = dayFormat.format(dismissal.day), style = MaterialTheme.typography.titleMedium)
-        Text(text = "Dismissed at ${clockFormat.format(dismissal.dismissedAt)}")
-        Text(text = "Rang for ${durationLabel(dismissal.ringingDuration)}")
+        Text(text = stringResource(R.string.statistics_dismissed_at, clockFormat.format(dismissal.dismissedAt)))
+        Text(text = stringResource(R.string.statistics_rang_for, durationLabel(dismissal.ringingDuration)))
         Text(
             text = when (dismissal.wrongAnswers) {
-                0 -> "No wrong answers"
-                1 -> "1 wrong answer"
-                else -> "${dismissal.wrongAnswers} wrong answers"
+                0 -> stringResource(R.string.wrong_answers_none)
+                1 -> stringResource(R.string.wrong_answers_one)
+                else -> stringResource(R.string.wrong_answers_many, dismissal.wrongAnswers)
             },
         )
     }
 }
 
+@Composable
 private fun streakLabel(count: Int): String = when (count) {
-    0 -> "No Streak yet"
-    1 -> "1 day"
-    else -> "$count days"
+    0 -> stringResource(R.string.statistics_streak_none)
+    1 -> stringResource(R.string.statistics_streak_days, 1)
+    else -> stringResource(R.string.statistics_streak_days, count)
 }
 
 private val clockFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 private val dayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
 
+@Composable
 private fun durationLabel(duration: Duration): String {
     val totalSeconds = duration.inWholeSeconds
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
-    return if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
+    return if (minutes > 0) {
+        stringResource(R.string.duration_minutes_seconds, minutes, seconds)
+    } else {
+        stringResource(R.string.duration_seconds, seconds)
+    }
 }

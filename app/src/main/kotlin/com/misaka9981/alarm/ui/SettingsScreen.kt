@@ -24,9 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmCatalog
 import com.misaka9981.alarm.core.AlarmRepository
@@ -57,6 +60,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var alarms by remember { mutableStateOf<List<Alarm>>(emptyList()) }
     var anchors by remember { mutableStateOf(AnchorCatalog.empty) }
     var passwordSet by remember { mutableStateOf(false) }
@@ -77,6 +81,7 @@ fun SettingsScreen(
     // changes; `AlarmCatalog` orders the same way.
     val primaryAlarm = AlarmCatalog.of(alarms).alarms.firstOrNull()
     val boundAnchor = primaryAlarm?.let { anchors.anchorFor(it.id) }
+    val anchorPrefix = stringResource(R.string.anchor_default_label)
 
     Column(
         modifier = modifier
@@ -85,70 +90,73 @@ fun SettingsScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = "Settings", style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
 
         if (!loaded) {
             CircularProgressIndicator()
             return@Column
         }
 
-        Section(title = "Wake time")
+        Section(title = stringResource(R.string.settings_wake_time))
         Text(
-            text = primaryAlarm?.let { "Alarm at ${formatSettingsTime(it)}" }
-                ?: "No Alarm yet.",
+            text = primaryAlarm?.let { stringResource(R.string.settings_alarm_at, formatSettingsTime(it)) }
+                ?: stringResource(R.string.settings_no_alarm),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(
             onClick = { primaryAlarm?.let { editingAlarm = it } },
             enabled = primaryAlarm != null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = "Change wake time") }
+        ) { Text(text = stringResource(R.string.settings_change_wake_time)) }
 
         HorizontalDivider()
-        Section(title = "Physical Anchor")
+        Section(title = stringResource(R.string.settings_physical_anchor))
         Text(
-            text = boundAnchor?.let { "Bound: \"${it.label}\"" } ?: "No Physical Anchor bound.",
+            text = boundAnchor?.let { stringResource(R.string.settings_anchor_bound, it.label) }
+                ?: stringResource(R.string.settings_anchor_none),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(
             onClick = {
                 val alarmId = primaryAlarm?.id ?: return@Button
                 scope.launch {
-                    anchorStatus = "Scanning…"
+                    anchorStatus = context.getString(R.string.status_scanning)
                     val payload = scanner.scan()
                     if (payload == null) {
-                        anchorStatus = "Scan cancelled."
+                        anchorStatus = context.getString(R.string.status_scan_cancelled)
                         return@launch
                     }
                     val code = AnchorCode(payload)
-                    val label = anchors.findByCode(code)?.label ?: anchorLabelFor(payload)
+                    val label = anchors.findByCode(code)?.label
+                        ?: anchorLabelFor(payload, anchorPrefix)
                     anchorRepository.save(
                         anchors
                             .set(PhysicalAnchor(code = code, label = label))
                             .bind(alarmId, code),
                     )
-                    anchorStatus = "Physical Anchor \"$label\" bound."
+                    anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
                     refreshKey++
                 }
             },
             enabled = primaryAlarm != null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = "Change Physical Anchor") }
+        ) { Text(text = stringResource(R.string.settings_change_anchor)) }
         anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
 
         HorizontalDivider()
-        Section(title = "Escape Hatch password")
+        Section(title = stringResource(R.string.settings_escape_hatch_password))
         Text(
-            text = if (passwordSet) "Password is set." else "No password is set.",
+            text = if (passwordSet) stringResource(R.string.settings_password_set)
+            else stringResource(R.string.settings_password_none),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(
             onClick = { changingPassword = true },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(text = "Change password") }
+        ) { Text(text = stringResource(R.string.settings_change_password)) }
 
         HorizontalDivider()
-        TextButton(onClick = onClose) { Text(text = "Close") }
+        TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_close)) }
     }
 
     editingAlarm?.let { alarm ->
@@ -193,16 +201,17 @@ private fun ChangePasswordDialog(
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Escape Hatch password") },
+        title = { Text(text = stringResource(R.string.settings_escape_hatch_password)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(text = "New password") },
+                    label = { Text(text = stringResource(R.string.change_password_new)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -211,7 +220,7 @@ private fun ChangePasswordDialog(
                 OutlinedTextField(
                     value = confirmation,
                     onValueChange = { confirmation = it },
-                    label = { Text(text = "Confirm new password") },
+                    label = { Text(text = stringResource(R.string.change_password_confirm)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -230,15 +239,17 @@ private fun ChangePasswordDialog(
             TextButton(
                 onClick = {
                     when {
-                        password.isBlank() -> error = "The password must not be blank."
-                        password != confirmation -> error = "The passwords do not match."
+                        password.isBlank() ->
+                            error = context.getString(R.string.onboarding_password_blank)
+                        password != confirmation ->
+                            error = context.getString(R.string.onboarding_password_mismatch)
                         else -> onSave(EscapeHatchPassword(password))
                     }
                 },
-            ) { Text(text = "Save") }
+            ) { Text(text = stringResource(R.string.action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(text = "Cancel") }
+            TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.action_cancel)) }
         },
     )
 }

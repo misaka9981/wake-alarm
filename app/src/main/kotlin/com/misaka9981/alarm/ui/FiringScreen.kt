@@ -23,9 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.AnchorScanResult
 import com.misaka9981.alarm.core.DismissalState
 import com.misaka9981.alarm.core.FiringState
@@ -76,7 +78,7 @@ fun FiringScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Alarm — $alarmLabel",
+            text = stringResource(R.string.firing_alarm_label, alarmLabel),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onEscapeHatchLongPress() })
@@ -85,17 +87,14 @@ fun FiringScreen(
 
         if (silentMode) {
             Text(
-                text = "Silent Mode — this Alarm signals by vibration only, with no sound. " +
-                    "The Dismiss Challenge and Physical Anchor are unchanged.",
+                text = stringResource(R.string.firing_silent_mode),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
 
         if (ringing.capExpired) {
             Text(
-                text = "Signalling has stopped to keep this Alarm from ringing forever, " +
-                    "but the Alarm is not cleared. Solve the Dismiss Challenge and reach " +
-                    "the Physical Anchor to clear it.",
+                text = stringResource(R.string.firing_cap_expired),
                 color = MaterialTheme.colorScheme.error,
             )
         }
@@ -103,54 +102,60 @@ fun FiringScreen(
         when (challenge) {
             is DismissalState.Ongoing -> {
                 Text(
-                    text = "Dismiss Challenge · difficulty ${challenge.difficulty} · " +
-                        "${challenge.elapsed.inWholeSeconds}s · ${challenge.wrongAnswers} wrong",
+                    text = stringResource(
+                        R.string.firing_challenge_progress,
+                        challenge.difficulty,
+                        challenge.elapsed.inWholeSeconds.toInt(),
+                        challenge.wrongAnswers,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(text = challenge.challenge.problem, style = MaterialTheme.typography.displaySmall)
                 challenge.feedback?.let {
                     Text(
-                        text = "Wrong answer — the next challenge is harder.",
+                        text = stringResource(R.string.wrong_answer_hint),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 OutlinedTextField(
                     value = typed,
                     onValueChange = onTypedChange,
-                    label = { Text(text = "Your answer") },
+                    label = { Text(text = stringResource(R.string.label_your_answer)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "Submit")
+                    Text(text = stringResource(R.string.action_submit))
                 }
             }
 
             is DismissalState.Dismissed -> Text(
-                text = "Dismiss Challenge solved.",
+                text = stringResource(R.string.dismiss_challenge_solved),
                 color = MaterialTheme.colorScheme.primary,
             )
         }
 
-        Text(text = "Physical Anchor", style = MaterialTheme.typography.titleSmall)
+        Text(text = stringResource(R.string.anchor_title), style = MaterialTheme.typography.titleSmall)
         if (ringing.anchorReached) {
             Text(
-                text = anchorLabel?.let { "Anchor reached: $it." } ?: "Physical Anchor reached.",
+                text = anchorLabel
+                    ?.let { stringResource(R.string.anchor_reached_named, it) }
+                    ?: stringResource(R.string.anchor_reached),
                 color = MaterialTheme.colorScheme.primary,
             )
         } else {
             Text(
                 text = anchorLabel
-                    ?.let { "Reach your Physical Anchor: $it." }
-                    ?: "No Physical Anchor is bound to this Alarm.",
+                    ?.let { stringResource(R.string.anchor_reach_named, it) }
+                    ?: stringResource(R.string.anchor_none_bound),
             )
             ringing.anchorFeedback?.let { feedback ->
                 Text(
                     text = if (feedback is AnchorScanResult.NotReached && feedback.scanned == null) {
-                        "Scan cancelled."
+                        stringResource(R.string.status_scan_cancelled)
                     } else {
-                        "Not the bound Physical Anchor."
+                        stringResource(R.string.anchor_not_bound)
                     },
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -160,7 +165,10 @@ fun FiringScreen(
                 enabled = anchorLabel != null && !scanning,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(text = if (scanning) "Scanning…" else "Scan Physical Anchor")
+                Text(
+                    text = if (scanning) stringResource(R.string.status_scanning)
+                    else stringResource(R.string.anchor_scan),
+                )
             }
         }
     }
@@ -186,18 +194,14 @@ private fun EscapeHatchPasswordDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(text = "Escape Hatch") },
+        title = { Text(text = stringResource(R.string.escape_hatch_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Force-silences the Alarm without the Dismiss Challenge or " +
-                        "the Physical Anchor, and breaks the day's Streak. Only the " +
-                        "correct password will silence it.",
-                )
+                Text(text = stringResource(R.string.escape_hatch_description))
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(text = "Password") },
+                    label = { Text(text = stringResource(R.string.label_password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
@@ -211,10 +215,10 @@ private fun EscapeHatchPasswordDialog(
                     onUnlock(password)
                     password = ""
                 },
-            ) { Text(text = "Force-silence") }
+            ) { Text(text = stringResource(R.string.escape_hatch_force_silence)) }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text(text = "Cancel") }
+            TextButton(onClick = onCancel) { Text(text = stringResource(R.string.action_cancel)) }
         },
     )
 }

@@ -21,7 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.DiagnosticEntry
 import com.misaka9981.alarm.core.DiagnosticLogCodec
 import com.misaka9981.alarm.core.FiringOutcome
@@ -61,29 +63,32 @@ fun DiagnosticLogScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Diagnostic Log",
+                text = stringResource(R.string.diagnostic_log_title),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onClose) { Text(text = "Back") }
+            TextButton(onClick = onClose) { Text(text = stringResource(R.string.action_back)) }
         }
         HorizontalDivider()
 
         when {
             !loaded -> Text(
-                text = "Loading…",
+                text = stringResource(R.string.status_loading),
                 modifier = Modifier.padding(24.dp),
             )
 
             entries.isEmpty() -> Text(
-                text = "No Alarms have fired yet. Each firing is recorded here.",
+                text = stringResource(R.string.diagnostic_log_empty),
                 modifier = Modifier.padding(24.dp),
             )
 
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 item {
                     Text(
-                        text = "Showing the most recent ${DiagnosticLogCodec.MAX_ENTRIES} firings.",
+                        text = stringResource(
+                            R.string.diagnostic_log_showing,
+                            DiagnosticLogCodec.MAX_ENTRIES,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
@@ -109,14 +114,20 @@ private fun DiagnosticEntryRow(entry: DiagnosticEntry) {
             text = outcomeLabel(entry.outcome),
             style = MaterialTheme.typography.titleMedium,
         )
-        Text(text = "Scheduled ${scheduledLabel(entry.scheduledTime)}")
-        Text(text = "Fired ${timestamp.format(entry.firedAt)}")
-        Text(text = "Signalled ${durationLabel(entry.challengeDuration)} · volume ${entry.signallingVolume}%")
+        Text(text = stringResource(R.string.diagnostic_log_scheduled, scheduledLabel(entry.scheduledTime)))
+        Text(text = stringResource(R.string.diagnostic_log_fired, timestamp.format(entry.firedAt)))
+        Text(
+            text = stringResource(
+                R.string.diagnostic_log_signalled,
+                durationLabel(entry.challengeDuration),
+                entry.signallingVolume,
+            ),
+        )
         Text(
             text = when (entry.wrongAnswers) {
-                0 -> "No wrong answers"
-                1 -> "1 wrong answer"
-                else -> "${entry.wrongAnswers} wrong answers"
+                0 -> stringResource(R.string.wrong_answers_none)
+                1 -> stringResource(R.string.wrong_answers_one)
+                else -> stringResource(R.string.wrong_answers_many, entry.wrongAnswers)
             },
         )
         Text(text = permissionsLabel(entry.missingRequirements))
@@ -129,32 +140,51 @@ private val timestamp: DateTimeFormatter =
 private val scheduledFormat: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
+@Composable
 private fun scheduledLabel(scheduledTime: Instant?): String =
-    scheduledTime?.let(scheduledFormat::format) ?: "time not recorded"
+    scheduledTime?.let(scheduledFormat::format)
+        ?: stringResource(R.string.diagnostic_log_time_not_recorded)
 
-private fun outcomeLabel(outcome: FiringOutcome): String = when (outcome) {
-    FiringOutcome.Dismissed -> "Dismissed by challenge and anchor"
-    FiringOutcome.CapExpired -> "Sound cap expired — left uncleared"
-    FiringOutcome.EscapeHatch -> "Escape Hatch used"
-}
+@Composable
+private fun outcomeLabel(outcome: FiringOutcome): String = stringResource(
+    when (outcome) {
+        FiringOutcome.Dismissed -> R.string.diagnostic_log_outcome_dismissed
+        FiringOutcome.CapExpired -> R.string.diagnostic_log_outcome_cap_expired
+        FiringOutcome.EscapeHatch -> R.string.diagnostic_log_outcome_escape_hatch
+    },
+)
 
+@Composable
 private fun durationLabel(duration: Duration): String {
     val totalSeconds = duration.inWholeSeconds
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
-    return if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
-}
-
-private fun permissionsLabel(missing: Set<ReliabilityRequirement>): String =
-    if (missing.isEmpty()) {
-        "All reliability permissions were granted"
+    return if (minutes > 0) {
+        stringResource(R.string.duration_minutes_seconds, minutes, seconds)
     } else {
-        "Missing at fire: ${missing.sortedBy { it.name }.joinToString(", ") { requirementLabel(it) }}"
+        stringResource(R.string.duration_seconds, seconds)
     }
-
-private fun requirementLabel(requirement: ReliabilityRequirement): String = when (requirement) {
-    ReliabilityRequirement.ExactAlarm -> "Exact alarms"
-    ReliabilityRequirement.FullScreenIntent -> "Full-screen intents"
-    ReliabilityRequirement.BatteryOptimisation -> "Battery optimisation exemption"
-    ReliabilityRequirement.DoNotDisturbAccess -> "Do Not Disturb access"
 }
+
+@Composable
+private fun permissionsLabel(missing: Set<ReliabilityRequirement>): String {
+    if (missing.isEmpty()) return stringResource(R.string.diagnostic_log_permissions_all)
+    val labels = mutableListOf<String>()
+    for (requirement in missing.sortedBy { it.name }) {
+        labels += requirementLabel(requirement)
+    }
+    return stringResource(
+        R.string.diagnostic_log_permissions_missing,
+        labels.joinToString(stringResource(R.string.list_separator)),
+    )
+}
+
+@Composable
+private fun requirementLabel(requirement: ReliabilityRequirement): String = stringResource(
+    when (requirement) {
+        ReliabilityRequirement.ExactAlarm -> R.string.requirement_exact_alarm
+        ReliabilityRequirement.FullScreenIntent -> R.string.requirement_full_screen_intent
+        ReliabilityRequirement.BatteryOptimisation -> R.string.requirement_battery_optimisation
+        ReliabilityRequirement.DoNotDisturbAccess -> R.string.requirement_do_not_disturb
+    },
+)

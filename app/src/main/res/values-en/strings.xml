@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- English text, selected on a device whose locale is English. The default
+         res/values/strings.xml is Chinese. -->
+    <string name="app_name">Wake Alarm</string>
+
+    <!-- The firing notification channel. -->
+    <string name="alarm_channel_name">Alarm</string>
+    <string name="alarm_channel_description">A ringing Alarm that is dismissed only by its Dismiss Challenge and Physical Anchor.</string>
+    <string name="alarm_notification_title">Alarm ringing</string>
+
+    <!-- Shared actions, labels, and status text. -->
+    <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_back">Back</string>
+    <string name="action_grant">Grant</string>
+    <string name="action_submit">Submit</string>
+    <string name="action_dev_close">Close (development entry point)</string>
+    <string name="label_your_answer">Your answer</string>
+    <string name="label_password">Password</string>
+    <string name="status_loading">Loading…</string>
+    <string name="status_scanning">Scanning…</string>
+    <string name="status_scan_cancelled">Scan cancelled.</string>
+    <string name="wrong_answer_hint">Wrong answer — the next challenge is harder.</string>
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
+    <string name="wrong_answers_none">No wrong answers</string>
+    <string name="wrong_answers_one">1 wrong answer</string>
+    <string name="wrong_answers_many">%1$d wrong answers</string>
+
+    <!-- Repeat-day chips. -->
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+    <string name="alarm_repeat_every_day">Every day</string>
+    <string name="list_separator">, </string>
+
+    <!-- Alarm list. -->
+    <string name="alarms_empty">No Alarms yet. Tap + to add one.</string>
+    <string name="nav_diagnostic_log">Diagnostic Log</string>
+    <string name="nav_statistics">Statistics</string>
+    <string name="nav_settings">Settings</string>
+    <string name="reliability_warning">⚠ Reliability: %1$d missing — fix</string>
+    <string name="dev_dismiss_challenge">DEV: Dismiss Challenge</string>
+    <string name="dev_physical_anchor">DEV: Physical Anchor</string>
+    <string name="dev_fire_alarm">DEV: Fire Alarm</string>
+    <string name="alarm_silent_mode">Silent Mode · vibration only</string>
+    <string name="alarm_starts_at_difficulty">Starts at difficulty %1$d</string>
+    <string name="alarm_editor_title_new">New Alarm</string>
+    <string name="alarm_editor_title_edit">Edit Alarm</string>
+    <string name="alarm_editor_repeat">Repeat</string>
+    <string name="alarm_editor_enabled">Enabled</string>
+    <string name="alarm_editor_silent_mode">Silent Mode (vibration only)</string>
+    <string name="alarm_editor_default_difficulty">Default difficulty (where Escalation starts)</string>
+
+    <!-- Dismiss Challenge. -->
+    <string name="dismiss_challenge_title">Dismiss Challenge</string>
+    <string name="dismiss_challenge_progress">Difficulty %1$d · %2$ds · %3$d wrong</string>
+    <string name="dismiss_challenge_solved">Dismiss Challenge solved.</string>
+    <string name="alarm_dismissed">Alarm dismissed.</string>
+
+    <!-- Firing screen. -->
+    <string name="firing_alarm_label">Alarm — %1$s</string>
+    <string name="firing_silent_mode">Silent Mode — this Alarm signals by vibration only, with no sound. The Dismiss Challenge and Physical Anchor are unchanged.</string>
+    <string name="firing_cap_expired">Signalling has stopped to keep this Alarm from ringing forever, but the Alarm is not cleared. Solve the Dismiss Challenge and reach the Physical Anchor to clear it.</string>
+    <string name="firing_challenge_progress">Dismiss Challenge · difficulty %1$d · %2$ds · %3$d wrong</string>
+    <string name="firing_alarm_missing">This Alarm no longer exists.</string>
+    <string name="firing_stop_alarm">Stop the Alarm</string>
+    <string name="anchor_title">Physical Anchor</string>
+    <string name="anchor_reached_named">Anchor reached: %1$s.</string>
+    <string name="anchor_reached">Physical Anchor reached.</string>
+    <string name="anchor_reach_named">Reach your Physical Anchor: %1$s.</string>
+    <string name="anchor_none_bound">No Physical Anchor is bound to this Alarm.</string>
+    <string name="anchor_not_bound">Not the bound Physical Anchor.</string>
+    <string name="anchor_scan">Scan Physical Anchor</string>
+
+    <!-- Escape Hatch. -->
+    <string name="escape_hatch_title">Escape Hatch</string>
+    <string name="escape_hatch_description">Force-silences the Alarm without the Dismiss Challenge or the Physical Anchor, and breaks the day\'s Streak. Only the correct password will silence it.</string>
+    <string name="escape_hatch_force_silence">Force-silence</string>
+    <string name="escape_hatch_used">Escape Hatch used.</string>
+    <string name="escape_hatch_used_detail">The Alarm is silenced, and the day\'s Streak is broken.</string>
+
+    <!-- First-run onboarding. -->
+    <string name="onboarding_welcome">Welcome to Wake Alarm</string>
+    <string name="onboarding_intro">Set this up once; the app is then ready for a full night\'s sleep.</string>
+    <string name="onboarding_step_progress">Step %1$d of %2$d</string>
+    <string name="onboarding_wake_time">Wake time</string>
+    <string name="onboarding_wake_time_detail">Your first Alarm repeats every day and rings by default.</string>
+    <string name="onboarding_set_wake_time">Set wake time and create Alarm</string>
+    <string name="onboarding_anchor_detail">Place a real-world object away from the bed, then scan it. Dismissing an Alarm will require reaching it.</string>
+    <string name="onboarding_anchor_bound">Physical Anchor \"%1$s\" bound.</string>
+    <string name="onboarding_escape_hatch_password">Escape Hatch password</string>
+    <string name="onboarding_escape_hatch_detail">The Escape Hatch is a deliberately effortful last resort: a hidden long-press plus this password force-silences an Alarm.</string>
+    <string name="onboarding_confirm_password">Confirm password</string>
+    <string name="onboarding_password_blank">The password must not be blank.</string>
+    <string name="onboarding_password_mismatch">The passwords do not match.</string>
+    <string name="onboarding_set_password_and_finish">Set password and finish</string>
+    <string name="onboarding_footer">Setup is complete only when the wake time, the Physical Anchor, and the password are all set.</string>
+
+    <!-- Reliability guarantees. -->
+    <string name="reliability_title">Reliability</string>
+    <string name="reliability_intro">An Alarm depends on these platform guarantees. Any that are missing are listed below; grant them so the Alarm fires reliably.</string>
+    <string name="reliability_all_granted">All required guarantees are granted.</string>
+    <string name="reliability_missing_warning">Warning: %1$d required guarantee(s) missing — an Alarm may not fire.</string>
+    <string name="reliability_not_needed">Not needed on this Android version.</string>
+    <string name="reliability_granted">Granted.</string>
+    <string name="reliability_refresh">Refresh status</string>
+    <string name="requirement_exact_alarm">Exact alarms</string>
+    <string name="requirement_full_screen_intent">Full-screen intents</string>
+    <string name="requirement_battery_optimisation">Battery optimisation exemption</string>
+    <string name="requirement_do_not_disturb">Do Not Disturb access</string>
+    <string name="guidance_exact_alarm">Without it the Alarm is only approximate and may be late.</string>
+    <string name="guidance_full_screen_intent">Without it the Alarm cannot appear over the lock screen.</string>
+    <string name="guidance_battery_optimisation">Without it the system may defer or drop the Alarm.</string>
+    <string name="guidance_do_not_disturb">Without it a silent phone can hide the Alarm.</string>
+
+    <!-- Settings. -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_wake_time">Wake time</string>
+    <string name="settings_alarm_at">Alarm at %1$s</string>
+    <string name="settings_no_alarm">No Alarm yet.</string>
+    <string name="settings_change_wake_time">Change wake time</string>
+    <string name="settings_physical_anchor">Physical Anchor</string>
+    <string name="settings_anchor_bound">Bound: \"%1$s\"</string>
+    <string name="settings_anchor_none">No Physical Anchor bound.</string>
+    <string name="settings_change_anchor">Change Physical Anchor</string>
+    <string name="settings_escape_hatch_password">Escape Hatch password</string>
+    <string name="settings_password_set">Password is set.</string>
+    <string name="settings_password_none">No password is set.</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="change_password_new">New password</string>
+    <string name="change_password_confirm">Confirm new password</string>
+
+    <!-- Statistics. -->
+    <string name="statistics_title">Statistics</string>
+    <string name="statistics_current_streak">Current Streak</string>
+    <string name="statistics_streak_none">No Streak yet</string>
+    <string name="statistics_streak_days">%1$d days</string>
+    <string name="statistics_average_wake_time">Average wake time</string>
+    <string name="statistics_no_dismissals">No dismissals yet</string>
+    <string name="statistics_recent_dismissals">Recent dismissals</string>
+    <string name="statistics_empty">No Alarms have been dismissed yet. Each dismissal is summarised here.</string>
+    <string name="statistics_dismissed_at">Dismissed at %1$s</string>
+    <string name="statistics_rang_for">Rang for %1$s</string>
+
+    <!-- Diagnostic Log. -->
+    <string name="diagnostic_log_title">Diagnostic Log</string>
+    <string name="diagnostic_log_empty">No Alarms have fired yet. Each firing is recorded here.</string>
+    <string name="diagnostic_log_showing">Showing the most recent %1$d firings.</string>
+    <string name="diagnostic_log_scheduled">Scheduled %1$s</string>
+    <string name="diagnostic_log_time_not_recorded">time not recorded</string>
+    <string name="diagnostic_log_fired">Fired %1$s</string>
+    <string name="diagnostic_log_signalled">Signalled %1$s · volume %2$d%%</string>
+    <string name="diagnostic_log_outcome_dismissed">Dismissed by challenge and anchor</string>
+    <string name="diagnostic_log_outcome_cap_expired">Sound cap expired — left uncleared</string>
+    <string name="diagnostic_log_outcome_escape_hatch">Escape Hatch used</string>
+    <string name="diagnostic_log_permissions_all">All reliability permissions were granted</string>
+    <string name="diagnostic_log_permissions_missing">Missing at fire: %1$s</string>
+
+    <!-- Physical Anchor development screen. -->
+    <string name="anchor_dev_hint">Scan a real-world object away from the bed to set it, then scan again to prove reaching it.</string>
+    <string name="anchor_create_alarm_first">Create an Alarm first.</string>
+    <string name="anchor_alarm_label">Alarm</string>
+    <string name="anchor_set_from_scan">Set Physical Anchor from scan</string>
+    <string name="anchor_set_status">Set \"%1$s\" and bound it to %2$s.</string>
+    <string name="anchor_reached_status">Anchor reached.</string>
+    <string name="anchor_reach_from_scan">Reach Anchor from scan</string>
+    <string name="anchor_list_title">Anchors</string>
+    <string name="anchor_list_empty">None yet.</string>
+    <string name="anchor_code">Code: %1$s</string>
+    <string name="anchor_not_bound_to_alarm">Not bound to an Alarm</string>
+    <string name="anchor_bound_to">Bound to %1$s</string>
+    <string name="anchor_default_label">Anchor</string>
+</resources>

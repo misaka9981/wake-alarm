@@ -28,7 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AnchorGate
@@ -318,8 +320,8 @@ private fun EscapeHatchUsedAlarm(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Escape Hatch used.", style = MaterialTheme.typography.headlineSmall)
-        Text(text = "The Alarm is silenced, and the day's Streak is broken.")
+        Text(text = stringResource(R.string.escape_hatch_used), style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.escape_hatch_used_detail))
     }
 }
 
@@ -332,7 +334,7 @@ private fun DismissedAlarm(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Alarm dismissed.", style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.alarm_dismissed), style = MaterialTheme.typography.headlineSmall)
     }
 }
 
@@ -345,8 +347,11 @@ private fun MissingAlarm(onClose: () -> Unit, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "This Alarm no longer exists.", style = MaterialTheme.typography.headlineSmall)
-        Button(onClick = onClose) { Text(text = "Stop the Alarm") }
+        Text(
+            text = stringResource(R.string.firing_alarm_missing),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Button(onClick = onClose) { Text(text = stringResource(R.string.firing_stop_alarm)) }
     }
 }
 

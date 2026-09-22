@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,7 +36,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmCatalog
 import com.misaka9981.alarm.core.AlarmId
@@ -44,8 +47,6 @@ import com.misaka9981.alarm.core.AlarmTime
 import com.misaka9981.alarm.core.ReliabilityRequirement
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import java.time.DayOfWeek
-import java.time.format.TextStyle
-import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -57,6 +58,10 @@ import kotlinx.coroutines.launch
  * Saving the list re-arms every Alarm through [scheduler], and loading it does
  * the same so the app is armed after it regains control. [missingRequirements]
  * drives the reliability warning; [onOpenReliability] opens the guide.
+ *
+ * The navigation links and the debug entry points live in the [Scaffold]'s
+ * `topBar`, a dedicated region of their own, so they can never cover an Alarm
+ * row, its text, or its enable `Switch`.
  *
  * When [onOpenDevChallenge] is provided (debug builds), a development entry
  * point opens the Dismiss Challenge without an Alarm ringing. [onOpenDevAnchor]
@@ -97,6 +102,19 @@ fun AlarmListScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        topBar = {
+            AlarmListNavigation(
+                missingRequirements = missingRequirements,
+                devFireAlarmId = catalog.alarms.firstOrNull()?.id,
+                onOpenReliability = onOpenReliability,
+                onOpenDiagnosticLog = onOpenDiagnosticLog,
+                onOpenStatistics = onOpenStatistics,
+                onOpenSettings = onOpenSettings,
+                onOpenDevChallenge = onOpenDevChallenge,
+                onOpenDevAnchor = onOpenDevAnchor,
+                onOpenDevFire = onOpenDevFire,
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { creating = true }) {
                 Text(text = "+", style = MaterialTheme.typography.headlineMedium)
@@ -112,7 +130,7 @@ fun AlarmListScreen(
                 !loaded -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
 
                 catalog.alarms.isEmpty() -> Text(
-                    text = "No Alarms yet. Tap + to add one.",
+                    text = stringResource(R.string.alarms_empty),
                     modifier = Modifier
                         .align(Alignment.Center)
                         .padding(24.dp),
@@ -125,69 +143,6 @@ fun AlarmListScreen(
                             onEdit = { editing = alarm },
                             onEnabledChange = { commit(catalog.setEnabled(alarm.id, it)) },
                         )
-                    }
-                }
-            }
-
-            if (
-                onOpenReliability != null ||
-                onOpenDiagnosticLog != null ||
-                onOpenStatistics != null ||
-                onOpenSettings != null
-            ) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.Start,
-                ) {
-                    if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
-                        TextButton(onClick = onOpenReliability) {
-                            Text(
-                                text = "⚠ Reliability: ${missingRequirements.size} missing — fix",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                    if (onOpenDiagnosticLog != null) {
-                        TextButton(onClick = onOpenDiagnosticLog) {
-                            Text(text = "Diagnostic Log")
-                        }
-                    }
-                    if (onOpenStatistics != null) {
-                        TextButton(onClick = onOpenStatistics) {
-                            Text(text = "Statistics")
-                        }
-                    }
-                    if (onOpenSettings != null) {
-                        TextButton(onClick = onOpenSettings) {
-                            Text(text = "Settings")
-                        }
-                    }
-                }
-            }
-
-            if (onOpenDevChallenge != null || onOpenDevAnchor != null || onOpenDevFire != null) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    if (onOpenDevChallenge != null) {
-                        TextButton(onClick = onOpenDevChallenge) {
-                            Text(text = "DEV: Dismiss Challenge")
-                        }
-                    }
-                    if (onOpenDevAnchor != null) {
-                        TextButton(onClick = onOpenDevAnchor) {
-                            Text(text = "DEV: Physical Anchor")
-                        }
-                    }
-                    if (onOpenDevFire != null && catalog.alarms.isNotEmpty()) {
-                        TextButton(onClick = { onOpenDevFire(catalog.alarms.first().id) }) {
-                            Text(text = "DEV: Fire Alarm")
-                        }
                     }
                 }
             }
@@ -222,6 +177,91 @@ fun AlarmListScreen(
     }
 }
 
+/**
+ * The Alarm list's navigation links and debug entry points, held in the
+ * `topBar` so they occupy their own region. They never overlap the list because
+ * the Scaffold reserves this height for them.
+ */
+@Composable
+private fun AlarmListNavigation(
+    missingRequirements: Set<ReliabilityRequirement>,
+    devFireAlarmId: AlarmId?,
+    onOpenReliability: (() -> Unit)?,
+    onOpenDiagnosticLog: (() -> Unit)?,
+    onOpenStatistics: (() -> Unit)?,
+    onOpenSettings: (() -> Unit)?,
+    onOpenDevChallenge: (() -> Unit)?,
+    onOpenDevAnchor: (() -> Unit)?,
+    onOpenDevFire: ((AlarmId) -> Unit)?,
+) {
+    val hasNavigation = onOpenReliability != null ||
+        onOpenDiagnosticLog != null ||
+        onOpenStatistics != null ||
+        onOpenSettings != null
+    val hasDevelopment = onOpenDevChallenge != null ||
+        onOpenDevAnchor != null ||
+        (onOpenDevFire != null && devFireAlarmId != null)
+    if (!hasNavigation && !hasDevelopment) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
+                TextButton(onClick = onOpenReliability) {
+                    Text(
+                        text = stringResource(
+                            R.string.reliability_warning,
+                            missingRequirements.size,
+                        ),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            if (onOpenDiagnosticLog != null) {
+                TextButton(onClick = onOpenDiagnosticLog) {
+                    Text(text = stringResource(R.string.nav_diagnostic_log))
+                }
+            }
+            if (onOpenStatistics != null) {
+                TextButton(onClick = onOpenStatistics) {
+                    Text(text = stringResource(R.string.nav_statistics))
+                }
+            }
+            if (onOpenSettings != null) {
+                TextButton(onClick = onOpenSettings) {
+                    Text(text = stringResource(R.string.nav_settings))
+                }
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            if (onOpenDevChallenge != null) {
+                TextButton(onClick = onOpenDevChallenge) {
+                    Text(text = stringResource(R.string.dev_dismiss_challenge))
+                }
+            }
+            if (onOpenDevAnchor != null) {
+                TextButton(onClick = onOpenDevAnchor) {
+                    Text(text = stringResource(R.string.dev_physical_anchor))
+                }
+            }
+            if (onOpenDevFire != null && devFireAlarmId != null) {
+                TextButton(onClick = { onOpenDevFire(devFireAlarmId) }) {
+                    Text(text = stringResource(R.string.dev_fire_alarm))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AlarmRow(
     alarm: Alarm,
@@ -239,11 +279,17 @@ private fun AlarmRow(
             Text(text = formatTime(alarm.time), style = MaterialTheme.typography.headlineSmall)
             Text(text = formatRepeatDays(alarm.repeatDays), style = MaterialTheme.typography.bodyMedium)
             if (alarm.silentMode) {
-                Text(text = "Silent Mode · vibration only", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = stringResource(R.string.alarm_silent_mode),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             if (alarm.defaultDifficulty > Alarm.DEFAULT_DIFFICULTY) {
                 Text(
-                    text = "Starts at difficulty ${alarm.defaultDifficulty}",
+                    text = stringResource(
+                        R.string.alarm_starts_at_difficulty,
+                        alarm.defaultDifficulty,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -278,14 +324,24 @@ internal fun AlarmEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = if (initial == null) "New Alarm" else "Edit Alarm") },
+        title = {
+            Text(
+                text = stringResource(
+                    if (initial == null) R.string.alarm_editor_title_new
+                    else R.string.alarm_editor_title_edit,
+                ),
+            )
+        },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TimePicker(state = timePicker)
-                Text(text = "Repeat", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = stringResource(R.string.alarm_editor_repeat),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -303,19 +359,22 @@ internal fun AlarmEditorDialog(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Enabled", modifier = Modifier.weight(1f))
+                    Text(
+                        text = stringResource(R.string.alarm_editor_enabled),
+                        modifier = Modifier.weight(1f),
+                    )
                     Switch(checked = enabled, onCheckedChange = { enabled = it })
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Silent Mode (vibration only)",
+                        text = stringResource(R.string.alarm_editor_silent_mode),
                         modifier = Modifier.weight(1f),
                     )
                     Switch(checked = silentMode, onCheckedChange = { silentMode = it })
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Default difficulty (where Escalation starts)",
+                        text = stringResource(R.string.alarm_editor_default_difficulty),
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(
@@ -345,14 +404,18 @@ internal fun AlarmEditorDialog(
                         ),
                     )
                 },
-            ) { Text(text = "Save") }
+            ) { Text(text = stringResource(R.string.action_save)) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text(text = "Delete") }
+                    TextButton(onClick = onDelete) {
+                        Text(text = stringResource(R.string.action_delete))
+                    }
                 }
-                TextButton(onClick = onDismiss) { Text(text = "Cancel") }
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(R.string.action_cancel))
+                }
             }
         },
     )
@@ -360,10 +423,26 @@ internal fun AlarmEditorDialog(
 
 private fun formatTime(time: AlarmTime): String = "%02d:%02d".format(time.hour, time.minute)
 
+@Composable
 private fun formatRepeatDays(days: Set<DayOfWeek>): String {
-    if (days.size == DayOfWeek.entries.size) return "Every day"
-    return days.sortedBy { it.value }.joinToString(", ") { shortDayName(it) }
+    if (days.size == DayOfWeek.entries.size) return stringResource(R.string.alarm_repeat_every_day)
+    val separator = stringResource(R.string.list_separator)
+    val names = mutableListOf<String>()
+    for (day in days.sortedBy { it.value }) {
+        names += shortDayName(day)
+    }
+    return names.joinToString(separator)
 }
 
-private fun shortDayName(day: DayOfWeek): String =
-    day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+@Composable
+private fun shortDayName(day: DayOfWeek): String = stringResource(
+    when (day) {
+        DayOfWeek.MONDAY -> R.string.day_mon
+        DayOfWeek.TUESDAY -> R.string.day_tue
+        DayOfWeek.WEDNESDAY -> R.string.day_wed
+        DayOfWeek.THURSDAY -> R.string.day_thu
+        DayOfWeek.FRIDAY -> R.string.day_fri
+        DayOfWeek.SATURDAY -> R.string.day_sat
+        DayOfWeek.SUNDAY -> R.string.day_sun
+    },
+)
