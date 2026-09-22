@@ -224,6 +224,12 @@ private fun AlarmRow(
             if (alarm.silentMode) {
                 Text(text = "Silent Mode · vibration only", style = MaterialTheme.typography.bodySmall)
             }
+            if (alarm.defaultDifficulty > Alarm.DEFAULT_DIFFICULTY) {
+                Text(
+                    text = "Starts at difficulty ${alarm.defaultDifficulty}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
         Switch(checked = alarm.enabled, onCheckedChange = onEnabledChange)
     }
@@ -247,6 +253,11 @@ private fun AlarmEditorDialog(
     var enabled by remember { mutableStateOf(initial?.enabled ?: true) }
     // Silent Mode is off by default: a normal Alarm still rings.
     var silentMode by remember { mutableStateOf(initial?.silentMode ?: false) }
+    // The difficulty Escalation starts from, chosen in advance; the gentlest by
+    // default. It is set here, never during an Alarm.
+    var defaultDifficulty by remember {
+        mutableStateOf(initial?.defaultDifficulty ?: Alarm.DEFAULT_DIFFICULTY)
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -285,6 +296,21 @@ private fun AlarmEditorDialog(
                     )
                     Switch(checked = silentMode, onCheckedChange = { silentMode = it })
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Default difficulty (where Escalation starts)",
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        enabled = defaultDifficulty > Alarm.DEFAULT_DIFFICULTY_RANGE.first,
+                        onClick = { defaultDifficulty-- },
+                    ) { Text(text = "−") }
+                    Text(text = "$defaultDifficulty")
+                    TextButton(
+                        enabled = defaultDifficulty < Alarm.DEFAULT_DIFFICULTY_RANGE.last,
+                        onClick = { defaultDifficulty++ },
+                    ) { Text(text = "+") }
+                }
             }
         },
         confirmButton = {
@@ -298,6 +324,7 @@ private fun AlarmEditorDialog(
                             repeatDays = repeatDays,
                             enabled = enabled,
                             silentMode = silentMode,
+                            defaultDifficulty = defaultDifficulty,
                         ),
                     )
                 },

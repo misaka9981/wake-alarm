@@ -13,15 +13,17 @@ class AlarmFormatException(message: String) : IllegalArgumentException(message)
  * This is the part of persistence that is decidable, so it is the part kept in
  * `core` and tested; the adapter only stores the string it produces. Versioning
  * the header lets a future format change detect old data instead of silently
- * misreading it: version 2 added the per-Alarm Silent Mode flag, and version 1
- * data still decodes with Silent Mode off so an existing configuration is not
- * lost on upgrade.
+ * misreading it: version 2 added the per-Alarm Silent Mode flag, version 3 added
+ * the per-Alarm default difficulty, and older data still decodes with the newer
+ * fields at their defaults so an existing configuration is not lost on upgrade.
  */
 object AlarmCodec {
-    const val VERSION: Int = 2
+    const val VERSION: Int = 3
 
+    private const val LEGACY_SILENT_VERSION = 2
     private const val LEGACY_VERSION = 1
-    private const val FIELD_COUNT = 6
+    private const val FIELD_COUNT = 7
+    private const val LEGACY_SILENT_FIELD_COUNT = 6
     private const val LEGACY_FIELD_COUNT = 5
     private const val HEADER = "wake-alarm-alarms"
     private const val FIELD_SEPARATOR = '|'
@@ -38,6 +40,7 @@ object AlarmCodec {
             append(alarm.time.minute).append(FIELD_SEPARATOR)
             append(if (alarm.enabled) SET else UNSET).append(FIELD_SEPARATOR)
             append(if (alarm.silentMode) SET else UNSET).append(FIELD_SEPARATOR)
+            append(alarm.defaultDifficulty).append(FIELD_SEPARATOR)
             append(
                 alarm.repeatDays
                     .sortedBy { it.value }
@@ -71,8 +74,14 @@ object AlarmCodec {
 
     private fun decodeAlarm(line: String, version: Int): Alarm {
         val fields = line.split(FIELD_SEPARATOR)
-        // Version 1 had no Silent Mode field; it is the only difference.
-        val expectedFields = if (version == LEGACY_VERSION) LEGACY_FIELD_COUNT else FIELD_COUNT
+        // Version 1 had no Silent Mode field; version 2 added it; version 3 added
+        // the default difficulty. Each older version decodes with the newer
+        // fields at their defaults.
+        val expectedFields = when (version) {
+            LEGACY_VERSION -> LEGACY_FIELD_COUNT
+            LEGACY_SILENT_VERSION -> LEGACY_SILENT_FIELD_COUNT
+            else -> FIELD_COUNT
+        }
         if (fields.size != expectedFields) {
             throw AlarmFormatException("expected $expectedFields fields, got ${fields.size}: \"$line\"")
         }
@@ -87,6 +96,11 @@ object AlarmCodec {
         } else {
             decodeFlag(fields[4], "silent")
         }
+        val defaultDifficulty = if (version == VERSION) {
+            decodeDefaultDifficulty(fields[5])
+        } else {
+            Alarm.DEFAULT_DIFFICULTY
+        }
         val repeatDays = decodeRepeatDays(fields.last(), line)
         return Alarm(
             id = id,
@@ -94,7 +108,17 @@ object AlarmCodec {
             repeatDays = repeatDays,
             enabled = enabled,
             silentMode = silentMode,
+            defaultDifficulty = defaultDifficulty,
         )
+    }
+
+    private fun decodeDefaultDifficulty(field: String): Int {
+        val value = field.toIntOrNull()
+            ?: throw AlarmFormatException("default difficulty is not a number: \"$field\"")
+        if (value !in Alarm.DEFAULT_DIFFICULTY_RANGE) {
+            throw AlarmFormatException("default difficulty is out of range: \"$value\"")
+        }
+        return value
     }
 
     private fun decodeFlag(field: String, name: String): Boolean = when (field) {
@@ -118,5 +142,5 @@ object AlarmCodec {
         }.toSet()
     }
 
-    private val SUPPORTED_VERSIONS = setOf(LEGACY_VERSION, VERSION)
+    private val SUPPORTED_VERSIONS = setOf(LEGACY_VERSION, LEGACY_SILENT_VERSION, VERSION)
 }

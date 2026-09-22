@@ -118,4 +118,46 @@ class AlarmCodecTest {
             AlarmCodec.decode("wake-alarm-alarms 2\nid|07|00|1|1")
         }
     }
+
+    @Test
+    fun roundTripsDefaultDifficulty() {
+        val hard = Alarm(
+            id = AlarmId("hard"),
+            time = AlarmTime(6, 0),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+            defaultDifficulty = 4,
+        )
+
+        assertEquals(listOf(hard), AlarmCodec.decode(AlarmCodec.encode(listOf(hard))))
+    }
+
+    @Test
+    fun readsVersion2DataWithTheGentlestDefaultDifficulty() {
+        val decoded = AlarmCodec.decode("wake-alarm-alarms 2\nlegacy|07|00|1|1|1,2")
+
+        assertEquals(1, decoded.single().defaultDifficulty)
+        assertEquals(true, decoded.single().silentMode)
+    }
+
+    @Test
+    fun rejectsAVersion3RecordWithTheVersion2FieldCount() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 3\nid|07|00|1|1|1")
+        }
+    }
+
+    @Test
+    fun rejectsAMalformedDefaultDifficulty() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 3\nid|07|00|1|0|x|1")
+        }
+    }
+
+    @Test
+    fun rejectsAnOutOfRangeDefaultDifficulty() {
+        assertFailsWith<AlarmFormatException> {
+            AlarmCodec.decode("wake-alarm-alarms 3\nid|07|00|1|0|11|1")
+        }
+    }
 }

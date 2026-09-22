@@ -27,6 +27,12 @@ data class AlarmTime(val hour: Int, val minute: Int) {
  * by vibration only, with no sound. It is off by default, changes only how the
  * owner is signalled (see [Signalling]), and never changes how hard the Alarm is
  * to dismiss. See `CONTEXT.md`.
+ *
+ * [defaultDifficulty] is the per-Alarm difficulty Escalation starts from when the
+ * Alarm fires: the owner chooses it in advance, and it is only the starting point
+ * — the longer the Alarm rings and the more answers are wrong, the higher the
+ * difficulty climbs. It defaults to [DEFAULT_DIFFICULTY], so an Alarm the owner
+ * has not tuned starts as gently as the MVP allows.
  */
 data class Alarm(
     val id: AlarmId,
@@ -34,8 +40,25 @@ data class Alarm(
     val repeatDays: Set<DayOfWeek>,
     val enabled: Boolean,
     val silentMode: Boolean = false,
+    val defaultDifficulty: Int = DEFAULT_DIFFICULTY,
 ) {
     init {
         require(repeatDays.isNotEmpty()) { "an Alarm must repeat on at least one day" }
+        require(defaultDifficulty in DEFAULT_DIFFICULTY_RANGE) {
+            "defaultDifficulty must be in $DEFAULT_DIFFICULTY_RANGE, was $defaultDifficulty"
+        }
+    }
+
+    companion object {
+        /** The difficulty an Alarm starts at when the owner has not chosen one. */
+        const val DEFAULT_DIFFICULTY: Int = 1
+
+        /**
+         * The difficulties the owner may choose as an Alarm's default, from the
+         * gentlest start to the hardest. The top of the range matches
+         * [EscalationPolicy]'s default maximum, so a chosen start is never more
+         * than the hardest challenge the policy will escalate to.
+         */
+        val DEFAULT_DIFFICULTY_RANGE: IntRange = 1..10
     }
 }

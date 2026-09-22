@@ -47,6 +47,14 @@ class FiringSessionTest {
     }
 
     @Test
+    fun startsTheChallengeAtTheAlarmsDefaultDifficulty() {
+        val state = session(baseDifficulty = 3).state.ringing().challenge()
+
+        assertEquals(3, state.difficulty)
+        assertEquals(3, state.challenge.difficulty)
+    }
+
+    @Test
     fun theDismissChallengeAloneNeverDismisses() {
         val session = session()
         val answer = session.state.ringing().challenge().challenge.answer

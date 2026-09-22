@@ -76,4 +76,55 @@ class AlarmTest {
         assertEquals(false, ringing.silentMode)
         assertEquals(true, silent.silentMode)
     }
+
+    @Test
+    fun defaultDifficultyIsTheGentlestByDefault() {
+        val alarm = Alarm(
+            id = AlarmId("a"),
+            time = AlarmTime(6, 30),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+        )
+
+        assertEquals(1, alarm.defaultDifficulty)
+        assertEquals(1, Alarm.DEFAULT_DIFFICULTY)
+    }
+
+    @Test
+    fun defaultDifficultyIsPerAlarm() {
+        val gentle = Alarm(
+            id = AlarmId("gentle"),
+            time = AlarmTime(6, 30),
+            repeatDays = setOf(DayOfWeek.MONDAY),
+            enabled = true,
+        )
+        val hard = gentle.copy(defaultDifficulty = 4)
+
+        assertEquals(1, gentle.defaultDifficulty)
+        assertEquals(4, hard.defaultDifficulty)
+    }
+
+    @Test
+    fun alarmRejectsADefaultDifficultyOutsideTheAllowedRange() {
+        val range = Alarm.DEFAULT_DIFFICULTY_RANGE
+
+        assertFailsWith<IllegalArgumentException> {
+            Alarm(
+                id = AlarmId("too-low"),
+                time = AlarmTime(6, 30),
+                repeatDays = setOf(DayOfWeek.MONDAY),
+                enabled = true,
+                defaultDifficulty = range.first - 1,
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            Alarm(
+                id = AlarmId("too-high"),
+                time = AlarmTime(6, 30),
+                repeatDays = setOf(DayOfWeek.MONDAY),
+                enabled = true,
+                defaultDifficulty = range.last + 1,
+            )
+        }
+    }
 }

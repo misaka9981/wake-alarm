@@ -197,6 +197,9 @@ private fun FiringRoute(
             val started = FiringSession.start(
                 generator = ArithmeticChallengeGenerator(Random(System.currentTimeMillis())),
                 policy = EscalationPolicy(),
+                // Escalation starts from the difficulty the owner chose the night
+                // before; `core` decides how it climbs from there.
+                baseDifficulty = loadedAlarm.defaultDifficulty,
                 escapeHatch = escapeHatch,
             )
             session = started
