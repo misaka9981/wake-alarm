@@ -167,6 +167,7 @@
     <string name="statistics_no_dismissals">还没有解除记录</string>
     <string name="statistics_recent_dismissals">最近的解除记录</string>
     <string name="statistics_empty">还没有闹钟被解除。每次解除都会在这里汇总。</string>
+    <string name="statistics_chart_title">最近几次解除的答错次数</string>
     <string name="statistics_dismissed_at">解除于 %1$s</string>
     <string name="statistics_rang_for">响铃 %1$s</string>
 

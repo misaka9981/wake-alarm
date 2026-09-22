@@ -1,13 +1,18 @@
 package com.misaka9981.alarm.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -19,12 +24,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,14 +54,18 @@ import java.util.UUID
 import kotlinx.coroutines.launch
 
 /**
- * The first-run flow: set the wake time (which creates the first Alarm), bind a
- * Physical Anchor away from the bed, and set the private Escape Hatch password.
+ * The first-run flow, one numbered step at a time: set the wake time (which
+ * creates the first Alarm), bind a Physical Anchor away from the bed, and set
+ * the private Escape Hatch password.
  *
  * This screen only renders and drives the platform concerns — loading the
  * configuration, the camera, and storage. Every rule about what an Alarm is,
  * what counts as a bound anchor, and whether setup is complete lives in `core`
- * ([Onboarding]); the step to resume at comes from its [Onboarding.missingSteps].
- * There is no Snooze anywhere in the flow.
+ * ([Onboarding]). After each step the configuration is re-read, so the step
+ * shown is always [Onboarding.missingSteps]'s first — the flow resumes at the
+ * first missing step rather than at a remembered position — and it finishes
+ * only when [Onboarding.isComplete] is true, not when a button is tapped. There
+ * is no Snooze anywhere in the flow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,17 +81,14 @@ fun OnboardingScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var step by remember {
-        mutableStateOf(onboarding.missingSteps.firstOrNull() ?: OnboardingStep.WakeTime)
-    }
-    var firstAlarmId by remember { mutableStateOf(onboarding.firstAlarm?.id) }
+    var setup by remember { mutableStateOf(onboarding) }
     var anchorStatus by remember { mutableStateOf<String?>(null) }
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
     var passwordStatus by remember { mutableStateOf<String?>(null) }
     val timePicker = rememberTimePickerState(
-        initialHour = onboarding.firstAlarm?.time?.hour ?: 7,
-        initialMinute = onboarding.firstAlarm?.time?.minute ?: 0,
+        initialHour = setup.firstAlarm?.time?.hour ?: 7,
+        initialMinute = setup.firstAlarm?.time?.minute ?: 0,
         is24Hour = true,
     )
     val anchorPrefix = stringResource(R.string.anchor_default_label)
@@ -88,6 +96,23 @@ fun OnboardingScreen(
     val scanCancelledLabel = stringResource(R.string.status_scan_cancelled)
     val passwordBlankLabel = stringResource(R.string.onboarding_password_blank)
     val passwordMismatchLabel = stringResource(R.string.onboarding_password_mismatch)
+
+    // Re-read the configuration so the next step is whatever `core` still finds
+    // missing. This is also what lets the flow resume after a restart.
+    suspend fun reloadSetup() {
+        setup = Onboarding.of(
+            alarms = alarmRepository.load(),
+            anchors = anchorRepository.load(),
+            password = escapeHatchRepository.load(),
+        )
+    }
+
+    val step = setup.missingSteps.firstOrNull()
+    if (step == null) {
+        // `core` says setup is complete; hand control back to the host.
+        LaunchedEffect(Unit) { onComplete() }
+        return
+    }
 
     Column(
         modifier = modifier
@@ -107,6 +132,7 @@ fun OnboardingScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(text = stepProgress(step), style = MaterialTheme.typography.labelLarge)
+        StepIndicator(step)
 
         when (step) {
             OnboardingStep.WakeTime -> {
@@ -128,8 +154,7 @@ fun OnboardingScreen(
                         scope.launch {
                             alarmRepository.save(listOf(alarm))
                             scheduler.reschedule(listOf(alarm))
-                            firstAlarmId = alarm.id
-                            step = OnboardingStep.PhysicalAnchor
+                            reloadSetup()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -147,7 +172,7 @@ fun OnboardingScreen(
                 )
                 Button(
                     onClick = {
-                        val alarmId = firstAlarmId ?: return@Button
+                        val alarmId = setup.firstAlarm?.id ?: return@Button
                         scope.launch {
                             anchorStatus = scanningLabel
                             val payload = scanner.scan()
@@ -165,10 +190,10 @@ fun OnboardingScreen(
                                     .bind(alarmId, code),
                             )
                             anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
-                            step = OnboardingStep.EscapeHatchPassword
+                            reloadSetup()
                         }
                     },
-                    enabled = firstAlarmId != null,
+                    enabled = setup.firstAlarm != null,
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(text = stringResource(R.string.anchor_scan)) }
                 anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
@@ -212,7 +237,9 @@ fun OnboardingScreen(
 
                             else -> scope.launch {
                                 escapeHatchRepository.save(EscapeHatchPassword(password))
-                                onComplete()
+                                // Re-read; the host is handed control only once
+                                // `core` reports setup complete.
+                                reloadSetup()
                             }
                         }
                     },
@@ -227,6 +254,31 @@ fun OnboardingScreen(
             text = stringResource(R.string.onboarding_footer),
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+/** A step bar: one segment per step, the completed and current steps filled. */
+@Composable
+private fun StepIndicator(step: OnboardingStep) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OnboardingStep.entries.forEachIndexed { index, _ ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        if (index <= step.ordinal) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                    ),
+            )
+        }
     }
 }
 

@@ -165,6 +165,7 @@
     <string name="statistics_no_dismissals">No dismissals yet</string>
     <string name="statistics_recent_dismissals">Recent dismissals</string>
     <string name="statistics_empty">No Alarms have been dismissed yet. Each dismissal is summarised here.</string>
+    <string name="statistics_chart_title">Wrong answers in recent dismissals</string>
     <string name="statistics_dismissed_at">Dismissed at %1$s</string>
     <string name="statistics_rang_for">Rang for %1$s</string>
 
