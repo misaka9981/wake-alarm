@@ -63,9 +63,6 @@ data class WakeStatistics(
         /** How many recent dismissed firings the Statistics view shows. */
         const val RECENT_DISMISSALS: Int = 7
 
-        /** No recorded history yet: no Streak, nothing recent, no average. */
-        val empty: WakeStatistics = WakeStatistics()
-
         /**
          * Derives the statistics from the recorded [entries], reading local days
          * and clock times in [zone]. Entries are ordered by [DiagnosticEntry.firedAt]
