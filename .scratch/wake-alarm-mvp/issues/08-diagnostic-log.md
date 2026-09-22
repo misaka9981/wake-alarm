@@ -7,8 +7,8 @@
 Status: ready-for-human
 
 - [x] The log records, per Alarm firing: scheduled time, actual fire time, permission state at fire, signalling volume, challenge duration, wrong-answer count, and whether the Escape Hatch was used.
-- [x] Log entries are persisted and survive an app restart.
-- [x] The log is readable in-app on the phone.
+- [ ] Log entries are persisted and survive an app restart.
+- [ ] The log is readable in-app on the phone.
 - [x] The page shows a bounded recent history rather than growing without limit.
 
 ## Comments
@@ -67,15 +67,18 @@ Acceptance:
 - "Records the listed facts per firing" and "shows a bounded recent history" are
   covered by the `DiagnosticEntry`/`DiagnosticLogCodec` tests and the recording
   wiring, so those boxes are ticked.
-- "Persisted and survives an app restart" and "readable in-app" are implemented
-  through the DataStore adapter and the screen, by the same pattern already
-  verified for the Escape Hatch log; they cannot be exercised in CI.
+- "Persisted and survives an app restart" and "readable in-app on the phone" are
+  implemented through the DataStore adapter and the screen, by the same pattern
+  already verified for the Escape Hatch log, but both can only be confirmed on
+  the phone, so those boxes are left unchecked.
 
 Pending device confirmation（待机主真机确认）:
 
-- Open "Diagnostic Log" from the Alarm list and confirm an entry appears after a
-  real firing (or the DEV: Fire Alarm path), that every field reads sensibly, and
-  that entries are still there after force-stopping and reopening the app.
+- On the phone, open "Diagnostic Log" from the Alarm list and read the record
+  written by one real firing (or the DEV: Fire Alarm path), confirming every
+  field reads sensibly.
+- Confirm the record is still listed after force-stopping and reopening the app
+  (it must survive a restart).
 - Let an Alarm ring past the sound cap and confirm it is recorded as
   "Sound cap expired — left uncleared", and that a force-silenced Alarm is
   recorded as "Escape Hatch used".
