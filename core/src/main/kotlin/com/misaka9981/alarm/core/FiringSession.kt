@@ -71,6 +71,28 @@ sealed interface FiringState {
 }
 
 /**
+ * The facts a finished Alarm firing reports to the Diagnostic Log.
+ *
+ * It is a value, not a decision: the recording adapter combines it with what it
+ * observed on the platform (the schedule, the fire instant, the permissions, the
+ * volume). Keeping it in `core` lets the recording path be tested without a
+ * device.
+ */
+data class FiringSummary(
+    /** How long the Alarm signalled before it stopped. */
+    val ringingDuration: Duration,
+    /** How many wrong answers the owner submitted during the firing. */
+    val wrongAnswers: Int,
+) {
+    init {
+        require(!ringingDuration.isNegative()) {
+            "ringingDuration must not be negative, was $ringingDuration"
+        }
+        require(wrongAnswers >= 0) { "wrongAnswers must not be negative, was $wrongAnswers" }
+    }
+}
+
+/**
  * The end-to-end Alarm firing state machine, pure and Android-free.
  *
  * It composes the Dismiss Challenge ([DismissalSession]) with the Physical
@@ -105,6 +127,16 @@ class FiringSession private constructor(
         state = reduce(state, event)
         return state
     }
+
+    /**
+     * The facts to record in the Diagnostic Log: how long the Alarm signalled and
+     * how many wrong answers the owner submitted, both retained after the firing
+     * ends. [elapsed] is the ringing time, which only grows.
+     */
+    fun summary(): FiringSummary = FiringSummary(
+        ringingDuration = elapsed,
+        wrongAnswers = challenge.wrongAnswers,
+    )
 
     private fun reduce(current: FiringState, event: FiringEvent): FiringState {
         if (current !is FiringState.Ringing) return current

@@ -70,6 +70,7 @@ fun AlarmListScreen(
     modifier: Modifier = Modifier,
     missingRequirements: Set<ReliabilityRequirement> = emptySet(),
     onOpenReliability: (() -> Unit)? = null,
+    onOpenDiagnosticLog: (() -> Unit)? = null,
     onOpenDevChallenge: (() -> Unit)? = null,
     onOpenDevAnchor: (() -> Unit)? = null,
     onOpenDevFire: ((AlarmId) -> Unit)? = null,
@@ -126,17 +127,26 @@ fun AlarmListScreen(
                 }
             }
 
-            if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
-                TextButton(
-                    onClick = onOpenReliability,
+            if (onOpenReliability != null || onOpenDiagnosticLog != null) {
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp),
+                    horizontalAlignment = Alignment.Start,
                 ) {
-                    Text(
-                        text = "⚠ Reliability: ${missingRequirements.size} missing — fix",
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    if (missingRequirements.isNotEmpty() && onOpenReliability != null) {
+                        TextButton(onClick = onOpenReliability) {
+                            Text(
+                                text = "⚠ Reliability: ${missingRequirements.size} missing — fix",
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    if (onOpenDiagnosticLog != null) {
+                        TextButton(onClick = onOpenDiagnosticLog) {
+                            Text(text = "Diagnostic Log")
+                        }
+                    }
                 }
             }
 

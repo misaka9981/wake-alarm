@@ -299,4 +299,30 @@ class FiringSessionTest {
 
         assertEquals(FiringState.Dismissed, result)
     }
+
+    @Test
+    fun theSummaryReportsRingingTimeAndWrongAnswers() {
+        val session = session()
+        session.onEvent(FiringEvent.Tick(45.seconds))
+        session.onEvent(FiringEvent.AnswerSubmitted("definitely-not-the-answer"))
+        session.onEvent(FiringEvent.AnswerSubmitted("still-not-the-answer"))
+
+        val summary = session.summary()
+
+        assertEquals(45.seconds, summary.ringingDuration)
+        assertEquals(2, summary.wrongAnswers)
+    }
+
+    @Test
+    fun theSummaryKeepsTheWrongAnswerCountAfterDismissal() {
+        val session = session()
+        session.onEvent(FiringEvent.AnswerSubmitted("wrong-1"))
+        session.onEvent(FiringEvent.AnswerSubmitted("wrong-2"))
+        val answer = session.state.ringing().challenge().challenge.answer
+        session.onEvent(FiringEvent.AnswerSubmitted(answer.toString()))
+        session.onEvent(FiringEvent.AnchorScanned(AnchorScanResult.Reached))
+        assertEquals(FiringState.Dismissed, session.state)
+
+        assertEquals(2, session.summary().wrongAnswers)
+    }
 }

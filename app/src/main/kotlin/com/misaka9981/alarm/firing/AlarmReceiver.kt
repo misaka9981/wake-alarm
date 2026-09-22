@@ -37,7 +37,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (alarm != null && alarm.enabled) {
                     AlarmScheduler(appContext).schedule(alarm)
                     AlarmService.start(appContext, alarmId, labelFor(alarm.time))
-                    launchFiringActivity(appContext, alarmId)
+                    launchFiringActivity(appContext, alarmId, intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L))
                 }
             } finally {
                 pendingResult.finish()
@@ -45,8 +45,8 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun launchFiringActivity(context: Context, alarmId: String) {
-        val activityIntent = AlarmFiringActivity.intent(context, alarmId)
+    private fun launchFiringActivity(context: Context, alarmId: String, scheduledAtMillis: Long) {
+        val activityIntent = AlarmFiringActivity.intent(context, alarmId, scheduledAtMillis)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             context.startActivity(activityIntent)
@@ -62,5 +62,12 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_FIRE = "com.misaka9981.alarm.action.FIRE"
         const val EXTRA_ALARM_ID = "alarm_id"
+
+        /**
+         * The epoch millis the Alarm was armed for, carried through to the firing
+         * screen so the Diagnostic Log can record the scheduled time. `-1` when
+         * unknown, such as a development firing.
+         */
+        const val EXTRA_SCHEDULED_AT = "scheduled_at"
     }
 }

@@ -56,6 +56,14 @@ class DismissalSession private constructor(
     var state: DismissalState = initialState
         private set
 
+    /**
+     * Wrong answers submitted so far, retained even after dismissal, so a firing
+     * that has ended can still report how many the owner got wrong to the
+     * Diagnostic Log.
+     */
+    var wrongAnswers: Int = 0
+        private set
+
     /** Applies [event] and returns the resulting state. */
     fun onEvent(event: DismissalEvent): DismissalState {
         state = reduce(state, event)
@@ -74,12 +82,13 @@ class DismissalSession private constructor(
         if (generator.validate(current.challenge, answer)) {
             DismissalState.Dismissed
         } else {
-            val wrongAnswers = current.wrongAnswers + 1
-            val difficulty = policy.difficulty(baseDifficulty, current.elapsed, wrongAnswers)
+            val nextWrongAnswers = current.wrongAnswers + 1
+            wrongAnswers = nextWrongAnswers
+            val difficulty = policy.difficulty(baseDifficulty, current.elapsed, nextWrongAnswers)
             current.copy(
                 challenge = generator.generate(difficulty),
                 difficulty = difficulty,
-                wrongAnswers = wrongAnswers,
+                wrongAnswers = nextWrongAnswers,
                 feedback = WrongAnswer(answer),
             )
         }

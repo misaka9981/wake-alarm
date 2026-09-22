@@ -2,6 +2,7 @@ package com.misaka9981.alarm.ui
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -32,19 +33,26 @@ import com.misaka9981.alarm.core.Alarm
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AnchorGate
 import com.misaka9981.alarm.core.ArithmeticChallengeGenerator
+import com.misaka9981.alarm.core.DiagnosticEntry
 import com.misaka9981.alarm.core.EscapeHatch
 import com.misaka9981.alarm.core.EscapeHatchUse
 import com.misaka9981.alarm.core.EscalationPolicy
 import com.misaka9981.alarm.core.FiringEvent
+import com.misaka9981.alarm.core.FiringOutcome
 import com.misaka9981.alarm.core.FiringSession
 import com.misaka9981.alarm.core.FiringState
+import com.misaka9981.alarm.core.ReliabilityCheck
+import com.misaka9981.alarm.core.ReliabilityRequirement
 import com.misaka9981.alarm.data.AndroidAnchorScanner
 import com.misaka9981.alarm.data.DataStoreAlarmRepository
 import com.misaka9981.alarm.data.DataStoreAnchorRepository
+import com.misaka9981.alarm.data.DataStoreDiagnosticLog
 import com.misaka9981.alarm.data.DataStoreEscapeHatchLog
 import com.misaka9981.alarm.data.DataStoreEscapeHatchRepository
 import com.misaka9981.alarm.firing.AlarmNotification
+import com.misaka9981.alarm.firing.AlarmReceiver
 import com.misaka9981.alarm.firing.AlarmService
+import com.misaka9981.alarm.reliability.AndroidReliabilityGrants
 import java.time.Instant
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
@@ -66,13 +74,18 @@ class AlarmFiringActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         keepScreenOn()
         val alarmId = intent.getStringExtra(EXTRA_ALARM_ID)
+        val scheduledAtMillis = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     if (alarmId == null) {
                         MissingAlarm(onClose = ::endFiring)
                     } else {
-                        FiringRoute(alarmId = alarmId, onDismissed = ::endFiring)
+                        FiringRoute(
+                            alarmId = alarmId,
+                            scheduledAtMillis = scheduledAtMillis,
+                            onDismissed = ::endFiring,
+                        )
                     }
                 }
             }
@@ -102,16 +115,24 @@ class AlarmFiringActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_ALARM_ID = "alarm_id"
+        private const val EXTRA_SCHEDULED_AT = AlarmReceiver.EXTRA_SCHEDULED_AT
 
-        /** An Intent that fires [alarmId] on this screen. */
-        fun intent(context: Context, alarmId: String): Intent =
-            Intent(context, AlarmFiringActivity::class.java).putExtra(EXTRA_ALARM_ID, alarmId)
+        /**
+         * An Intent that fires [alarmId] on this screen. [scheduledAtMillis] is
+         * the instant the Alarm was armed for, or `-1` when unknown, so the
+         * Diagnostic Log can record the scheduled time.
+         */
+        fun intent(context: Context, alarmId: String, scheduledAtMillis: Long = -1L): Intent =
+            Intent(context, AlarmFiringActivity::class.java)
+                .putExtra(EXTRA_ALARM_ID, alarmId)
+                .putExtra(EXTRA_SCHEDULED_AT, scheduledAtMillis)
     }
 }
 
 @Composable
 private fun FiringRoute(
     alarmId: String,
+    scheduledAtMillis: Long,
     onDismissed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -121,6 +142,7 @@ private fun FiringRoute(
     val scanner = remember(context) { AndroidAnchorScanner(context) }
     val escapeHatchRepository = remember(context) { DataStoreEscapeHatchRepository(context) }
     val escapeHatchLog = remember(context) { DataStoreEscapeHatchLog(context) }
+    val diagnosticLog = remember(context) { DataStoreDiagnosticLog(context) }
 
     var alarm by remember { mutableStateOf<Alarm?>(null) }
     var anchorLabel by remember { mutableStateOf<String?>(null) }
@@ -130,7 +152,37 @@ private fun FiringRoute(
     var typed by remember { mutableStateOf("") }
     var scanning by remember { mutableStateOf(false) }
     var loaded by remember { mutableStateOf(false) }
+    // Facts observed when the Alarm started firing, for the Diagnostic Log.
+    var firedAt by remember { mutableStateOf(Instant.now()) }
+    var missingRequirements by remember { mutableStateOf<Set<ReliabilityRequirement>>(emptySet()) }
+    var signallingVolume by remember { mutableStateOf(0) }
+    var recorded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    /**
+     * Records how this firing ended, once. The Diagnostic Log survives the app
+     * closing, so this is what makes a missed Alarm explainable later. It is
+     * recorded before the screen closes; a firing already recorded as cap-expired
+     * is not recorded again if it is later cleared.
+     */
+    suspend fun recordOutcome(outcome: FiringOutcome) {
+        if (recorded) return
+        recorded = true
+        val started = session ?: return
+        val summary = started.summary()
+        diagnosticLog.record(
+            DiagnosticEntry(
+                alarmId = AlarmId(alarmId),
+                scheduledTime = scheduledAtMillis.takeIf { it >= 0 }?.let { Instant.ofEpochMilli(it) },
+                firedAt = firedAt,
+                missingRequirements = missingRequirements,
+                signallingVolume = signallingVolume,
+                challengeDuration = summary.ringingDuration,
+                wrongAnswers = summary.wrongAnswers,
+                outcome = outcome,
+            ),
+        )
+    }
 
     LaunchedEffect(alarmId) {
         val loadedAlarm = alarmRepository.load().firstOrNull { it.id == AlarmId(alarmId) }
@@ -138,6 +190,10 @@ private fun FiringRoute(
         val escapeHatch = EscapeHatch.of(escapeHatchRepository.load())
         alarm = loadedAlarm
         if (loadedAlarm != null) {
+            firedAt = Instant.now()
+            missingRequirements = ReliabilityCheck(Build.VERSION.SDK_INT)
+                .missing(AndroidReliabilityGrants.read(context))
+            signallingVolume = alarmStreamVolumePercent(context)
             val started = FiringSession.start(
                 generator = ArithmeticChallengeGenerator(Random(System.currentTimeMillis())),
                 policy = EscalationPolicy(),
@@ -162,20 +218,32 @@ private fun FiringRoute(
 
     LaunchedEffect(state) {
         when (val current = state) {
-            is FiringState.Dismissed -> onDismissed()
+            is FiringState.Dismissed -> scope.launch {
+                try {
+                    recordOutcome(FiringOutcome.Dismissed)
+                } finally {
+                    onDismissed()
+                }
+            }
             // The Escape Hatch is recorded before the Alarm is silenced, so the
             // use survives for the Diagnostic Log and for the broken Streak. If
             // recording fails, the Alarm is still force-silenced.
             is FiringState.EscapeHatchUsed -> scope.launch {
                 try {
                     escapeHatchLog.record(EscapeHatchUse(AlarmId(alarmId), Instant.now()))
+                    recordOutcome(FiringOutcome.EscapeHatch)
                 } finally {
                     onDismissed()
                 }
             }
             // The cap stops the sound but not the Alarm: the service keeps the
-            // ongoing notification until the challenge and anchor are done.
-            is FiringState.Ringing -> if (current.capExpired) AlarmService.stopSignalling(context)
+            // ongoing notification until the challenge and anchor are done. It is
+            // still recorded, because letting the cap expire is a firing outcome
+            // the owner needs to be able to explain.
+            is FiringState.Ringing -> if (current.capExpired) {
+                AlarmService.stopSignalling(context)
+                scope.launch { recordOutcome(FiringOutcome.CapExpired) }
+            }
             null -> Unit
         }
     }
@@ -280,3 +348,15 @@ private fun MissingAlarm(onClose: () -> Unit, modifier: Modifier = Modifier) {
 
 private fun formatFiringAlarm(alarm: Alarm): String =
     "%02d:%02d".format(alarm.time.hour, alarm.time.minute)
+
+/**
+ * The alarm stream volume as a percentage of its maximum, so a firing that was
+ * silent can be explained by the Diagnostic Log. Reads the platform only.
+ */
+private fun alarmStreamVolumePercent(context: Context): Int {
+    val audioManager = context.getSystemService(AudioManager::class.java) ?: return 0
+    val maximum = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+    if (maximum <= 0) return 0
+    val current = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+    return (current * 100 / maximum).coerceIn(0, 100)
+}

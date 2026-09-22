@@ -42,8 +42,8 @@ class AlarmScheduler(context: Context) {
             return
         }
 
-        val alarmIntent = pendingIntent(alarm.id, PendingIntent.FLAG_UPDATE_CURRENT) ?: return
         val atMillis = trigger.toInstant().toEpochMilli()
+        val alarmIntent = pendingIntent(alarm.id, PendingIntent.FLAG_UPDATE_CURRENT, atMillis) ?: return
         if (Build.VERSION.SDK_INT < EXACT_ALARM_MIN_SDK || manager.canScheduleExactAlarms()) {
             val showIntent = PendingIntent.getActivity(
                 appContext,
@@ -64,10 +64,11 @@ class AlarmScheduler(context: Context) {
         existing.cancel()
     }
 
-    private fun pendingIntent(id: AlarmId, flags: Int): PendingIntent? {
+    private fun pendingIntent(id: AlarmId, flags: Int, scheduledAtMillis: Long = -1L): PendingIntent? {
         val intent = Intent(appContext, AlarmReceiver::class.java)
             .setAction(AlarmReceiver.ACTION_FIRE)
             .putExtra(AlarmReceiver.EXTRA_ALARM_ID, id.value)
+            .putExtra(AlarmReceiver.EXTRA_SCHEDULED_AT, scheduledAtMillis)
         return PendingIntent.getBroadcast(
             appContext,
             requestCode(id),
