@@ -10,7 +10,7 @@ Status: ready-for-human
 - [x] First run binds the Physical Anchor.
 - [x] First run sets the Escape Hatch password.
 - [x] The owner can change the wake time, the anchor, and the password later in settings.
-- [x] The app is usable for a full night's sleep immediately after onboarding.
+- [ ] The app is usable for a full night's sleep immediately after onboarding.
 
 ## Comments
 
@@ -61,13 +61,16 @@ How it was verified:
 
 Acceptance:
 
-- All five boxes are backed by the `core` tests above plus the wired adapters:
-  the wake time creates the first Alarm (`Onboarding.firstAlarm`), the anchor
-  binding and password presence are the `anchorBound`/`passwordSet` decisions,
-  settings calls the same tested `AlarmCatalog`/`AnchorCatalog`/
-  `EscapeHatchRepository` operations, and `isComplete` is exactly the
-  "usable for a full night's sleep" condition. The UI itself is a thin renderer
-  over those decisions and builds.
+- The first four boxes are backed by the `core` tests above plus the wired
+  adapters: the wake time creates the first Alarm (`Onboarding.firstAlarm`), the
+  anchor binding and password presence are the `anchorBound`/`passwordSet`
+  decisions, and settings calls the same tested `AlarmCatalog`/`AnchorCatalog`/
+  `EscapeHatchRepository` operations. The UI itself is a thin renderer over those
+  decisions and builds.
+- The fifth box — "usable for a full night's sleep immediately after onboarding"
+  — is a claim about a real, uninterrupted night, so it can only be confirmed by
+  the owner on the phone; `isComplete` is the necessary condition, not proof that
+  the night happened. It is therefore left unchecked.
 - Onboarding completion is derived rather than stored, by design: the first-run
   flow reappears only if the configuration that makes the app usable is gone
   (for example the owner deletes every Alarm), which matches the intent.
@@ -80,6 +83,9 @@ Pending device confirmation（待机主真机确认）:
   Google Play services for the camera scanner; the scan itself is unverified).
 - Set the Escape Hatch password and confirm setup then gives way to the Alarm
   list.
+- Then, without changing anything, leave it overnight and let it wake the owner
+  once for real, confirming that the app is usable for a full sleep cycle
+  immediately after onboarding.
 - Open Settings and change the wake time, the anchor, and the password, and
   confirm each change sticks after leaving and re-entering the screen.
 - Confirm the full first night works end to end (this overlaps ticket 05's
