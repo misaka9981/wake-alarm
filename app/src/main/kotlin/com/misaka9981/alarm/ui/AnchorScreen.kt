@@ -213,7 +213,7 @@ private fun AnchorRow(
     }
 }
 
-private fun anchorLabelFor(payload: String): String {
+internal fun anchorLabelFor(payload: String): String {
     val cleaned = payload.filterNot { it.isWhitespace() || it == '|' }.take(8)
     return if (cleaned.isEmpty()) "Anchor" else "Anchor $cleaned"
 }

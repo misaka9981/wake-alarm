@@ -72,6 +72,7 @@ fun AlarmListScreen(
     onOpenReliability: (() -> Unit)? = null,
     onOpenDiagnosticLog: (() -> Unit)? = null,
     onOpenStatistics: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     onOpenDevChallenge: (() -> Unit)? = null,
     onOpenDevAnchor: (() -> Unit)? = null,
     onOpenDevFire: ((AlarmId) -> Unit)? = null,
@@ -128,7 +129,12 @@ fun AlarmListScreen(
                 }
             }
 
-            if (onOpenReliability != null || onOpenDiagnosticLog != null || onOpenStatistics != null) {
+            if (
+                onOpenReliability != null ||
+                onOpenDiagnosticLog != null ||
+                onOpenStatistics != null ||
+                onOpenSettings != null
+            ) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -151,6 +157,11 @@ fun AlarmListScreen(
                     if (onOpenStatistics != null) {
                         TextButton(onClick = onOpenStatistics) {
                             Text(text = "Statistics")
+                        }
+                    }
+                    if (onOpenSettings != null) {
+                        TextButton(onClick = onOpenSettings) {
+                            Text(text = "Settings")
                         }
                     }
                 }
@@ -244,7 +255,7 @@ private fun AlarmRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AlarmEditorDialog(
+internal fun AlarmEditorDialog(
     initial: Alarm?,
     onDismiss: () -> Unit,
     onSave: (Alarm) -> Unit,

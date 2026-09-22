@@ -15,9 +15,11 @@ import androidx.core.content.ContextCompat
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.core.AnchorRepository
 import com.misaka9981.alarm.core.AnchorScanner
+import com.misaka9981.alarm.core.EscapeHatchRepository
 import com.misaka9981.alarm.data.AndroidAnchorScanner
 import com.misaka9981.alarm.data.DataStoreAlarmRepository
 import com.misaka9981.alarm.data.DataStoreAnchorRepository
+import com.misaka9981.alarm.data.DataStoreEscapeHatchRepository
 import com.misaka9981.alarm.firing.AlarmNotification
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import com.misaka9981.alarm.ui.WakeAlarmRoot
@@ -37,6 +39,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val alarmRepository: AlarmRepository = DataStoreAlarmRepository(applicationContext)
         val anchorRepository: AnchorRepository = DataStoreAnchorRepository(applicationContext)
+        val escapeHatchRepository: EscapeHatchRepository =
+            DataStoreEscapeHatchRepository(applicationContext)
         val anchorScanner: AnchorScanner = AndroidAnchorScanner(this)
         val scheduler = AlarmScheduler(applicationContext)
 
@@ -46,7 +50,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    WakeAlarmRoot(alarmRepository, anchorRepository, anchorScanner, scheduler)
+                    WakeAlarmRoot(
+                        alarmRepository,
+                        anchorRepository,
+                        escapeHatchRepository,
+                        anchorScanner,
+                        scheduler,
+                    )
                 }
             }
         }
