@@ -71,6 +71,7 @@ fun AlarmListScreen(
     missingRequirements: Set<ReliabilityRequirement> = emptySet(),
     onOpenReliability: (() -> Unit)? = null,
     onOpenDiagnosticLog: (() -> Unit)? = null,
+    onOpenStatistics: (() -> Unit)? = null,
     onOpenDevChallenge: (() -> Unit)? = null,
     onOpenDevAnchor: (() -> Unit)? = null,
     onOpenDevFire: ((AlarmId) -> Unit)? = null,
@@ -127,7 +128,7 @@ fun AlarmListScreen(
                 }
             }
 
-            if (onOpenReliability != null || onOpenDiagnosticLog != null) {
+            if (onOpenReliability != null || onOpenDiagnosticLog != null || onOpenStatistics != null) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -145,6 +146,11 @@ fun AlarmListScreen(
                     if (onOpenDiagnosticLog != null) {
                         TextButton(onClick = onOpenDiagnosticLog) {
                             Text(text = "Diagnostic Log")
+                        }
+                    }
+                    if (onOpenStatistics != null) {
+                        TextButton(onClick = onOpenStatistics) {
+                            Text(text = "Statistics")
                         }
                     }
                 }

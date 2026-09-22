@@ -17,7 +17,7 @@ import com.misaka9981.alarm.reliability.AndroidReliabilityGrants
 import com.misaka9981.alarm.schedule.AlarmScheduler
 
 /** The screens the app can show. */
-private enum class Screen { Alarms, Reliability, Challenge, Anchor, DiagnosticLog }
+private enum class Screen { Alarms, Reliability, Challenge, Anchor, DiagnosticLog, Statistics }
 
 /**
  * Hosts the app's screens and, in debug builds only, the development entry
@@ -52,6 +52,7 @@ fun WakeAlarmRoot(
             missingRequirements = missingRequirements,
             onOpenReliability = { screen = Screen.Reliability },
             onOpenDiagnosticLog = { screen = Screen.DiagnosticLog },
+            onOpenStatistics = { screen = Screen.Statistics },
             onOpenDevChallenge = if (developmentEntryPoints) {
                 { screen = Screen.Challenge }
             } else {
@@ -91,6 +92,11 @@ fun WakeAlarmRoot(
         )
 
         Screen.DiagnosticLog -> DiagnosticLogScreen(
+            onClose = { screen = Screen.Alarms },
+            modifier = modifier,
+        )
+
+        Screen.Statistics -> StatisticsScreen(
             onClose = { screen = Screen.Alarms },
             modifier = modifier,
         )
