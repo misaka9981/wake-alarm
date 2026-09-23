@@ -13,7 +13,7 @@ The problem the owner must solve before an Alarm is silenced. An Alarm cannot be
 _Avoid_: Task, puzzle, question
 
 **Physical Anchor**:
-A real-world object or code that the owner must physically reach, away from the bed, as part of dismissing an Alarm.
+An optional real-world object or code, bound to an Alarm, that the owner must physically reach, away from the bed, when dismissing that Alarm. An Alarm with no bound Physical Anchor is dismissed by its Dismiss Challenge alone.
 _Avoid_: QR code, checkpoint, beacon
 
 **Escape Hatch**:

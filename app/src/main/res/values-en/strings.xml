@@ -6,7 +6,7 @@
 
     <!-- The firing notification channel. -->
     <string name="alarm_channel_name">Alarm</string>
-    <string name="alarm_channel_description">A ringing Alarm that is dismissed only by its Dismiss Challenge and Physical Anchor.</string>
+    <string name="alarm_channel_description">A ringing Alarm stopped by its Dismiss Challenge, and by its Physical Anchor when one is bound.</string>
     <string name="alarm_notification_title">Alarm ringing</string>
 
     <!-- Shared actions, labels, and status text. -->
@@ -79,8 +79,8 @@
 
     <!-- Firing screen. -->
     <string name="firing_alarm_label">Alarm — %1$s</string>
-    <string name="firing_silent_mode">Silent Mode — this Alarm signals by vibration only, with no sound. The Dismiss Challenge and Physical Anchor are unchanged.</string>
-    <string name="firing_cap_expired">Signalling has stopped to keep this Alarm from ringing forever, but the Alarm is not cleared. Solve the Dismiss Challenge and reach the Physical Anchor to clear it.</string>
+    <string name="firing_silent_mode">Silent Mode — this Alarm signals by vibration only, with no sound. How you dismiss it is unchanged.</string>
+    <string name="firing_cap_expired">Signalling has stopped to keep this Alarm from ringing forever, but the Alarm is not cleared. Solve the Dismiss Challenge (and reach the Physical Anchor if one is bound) to clear it.</string>
     <string name="firing_challenge_progress">Dismiss Challenge · difficulty %1$d · %2$ds · %3$d wrong</string>
     <string name="firing_alarm_missing">This Alarm no longer exists.</string>
     <string name="firing_stop_alarm">Stop the Alarm</string>
@@ -114,7 +114,7 @@
     <string name="onboarding_password_blank">The password must not be blank.</string>
     <string name="onboarding_password_mismatch">The passwords do not match.</string>
     <string name="onboarding_set_password_and_finish">Set password and finish</string>
-    <string name="onboarding_footer">Setup is complete only when the wake time, the Physical Anchor, and the password are all set.</string>
+    <string name="onboarding_footer">Setup is complete once the wake time and the Escape Hatch password are set. A Physical Anchor is optional.</string>
 
     <!-- Reliability guarantees. -->
     <string name="reliability_title">Reliability</string>
@@ -139,10 +139,10 @@
     <string name="settings_alarm_at">Alarm at %1$s</string>
     <string name="settings_no_alarm">No Alarm yet.</string>
     <string name="settings_change_wake_time">Change wake time</string>
-    <string name="settings_physical_anchor">Physical Anchor</string>
+    <string name="settings_physical_anchor">Physical Anchor (optional)</string>
     <string name="settings_anchor_bound">Bound: \"%1$s\"</string>
-    <string name="settings_anchor_none">No Physical Anchor bound.</string>
-    <string name="settings_change_anchor">Change Physical Anchor</string>
+    <string name="settings_anchor_none">No Physical Anchor bound (optional).</string>
+    <string name="settings_change_anchor">Set / change Physical Anchor (optional)</string>
     <string name="settings_escape_hatch_password">Escape Hatch password</string>
     <string name="settings_password_set">Password is set.</string>
     <string name="settings_password_none">No password is set.</string>
@@ -177,7 +177,7 @@
     <string name="diagnostic_log_time_not_recorded">time not recorded</string>
     <string name="diagnostic_log_fired">Fired %1$s</string>
     <string name="diagnostic_log_signalled">Signalled %1$s · volume %2$d%%</string>
-    <string name="diagnostic_log_outcome_dismissed">Dismissed by challenge and anchor</string>
+    <string name="diagnostic_log_outcome_dismissed">Dismissed by the Dismiss Challenge</string>
     <string name="diagnostic_log_outcome_cap_expired">Sound cap expired — left uncleared</string>
     <string name="diagnostic_log_outcome_escape_hatch">Escape Hatch used</string>
     <string name="diagnostic_log_permissions_all">All reliability permissions were granted</string>

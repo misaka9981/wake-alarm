@@ -36,10 +36,11 @@ import com.misaka9981.alarm.core.FiringState
  * The screen shown while an Alarm is firing, over the lock screen.
  *
  * It renders only what [com.misaka9981.alarm.core.FiringSession] reports: the
- * Dismiss Challenge and the Physical Anchor, both of which are required before
- * the Alarm is silenced, and whether the sound cap has stopped the signalling.
- * There is no Snooze control anywhere — see `CONTEXT.md` and ADR-0002. Rendering
- * only; every decision lives in `core`.
+ * Dismiss Challenge and, when the Alarm has a bound Physical Anchor, that Anchor
+ * too, plus whether the sound cap has stopped the signalling. The Anchor is
+ * optional per Alarm — an Alarm with none passes `null` for [anchorLabel] and the
+ * Dismiss Challenge alone silences it. There is no Snooze control anywhere — see
+ * `CONTEXT.md` and ADR-0002. Rendering only; every decision lives in `core`.
  *
  * [silentMode] is the Alarm's Silent Mode setting, rendered so the owner can see
  * that this Alarm signals by vibration only. It changes nothing else on this
@@ -136,39 +137,38 @@ fun FiringScreen(
             )
         }
 
-        Text(text = stringResource(R.string.anchor_title), style = MaterialTheme.typography.titleSmall)
-        if (ringing.anchorReached) {
-            Text(
-                text = anchorLabel
-                    ?.let { stringResource(R.string.anchor_reached_named, it) }
-                    ?: stringResource(R.string.anchor_reached),
-                color = MaterialTheme.colorScheme.primary,
-            )
-        } else {
-            Text(
-                text = anchorLabel
-                    ?.let { stringResource(R.string.anchor_reach_named, it) }
-                    ?: stringResource(R.string.anchor_none_bound),
-            )
-            ringing.anchorFeedback?.let { feedback ->
+        // The Physical Anchor is optional: it is shown, and required, only when
+        // the owner has bound one to this Alarm. Without one, solving the
+        // challenge above is the whole dismissal.
+        if (anchorLabel != null) {
+            Text(text = stringResource(R.string.anchor_title), style = MaterialTheme.typography.titleSmall)
+            if (ringing.anchorReached) {
                 Text(
-                    text = if (feedback is AnchorScanResult.NotReached && feedback.scanned == null) {
-                        stringResource(R.string.status_scan_cancelled)
-                    } else {
-                        stringResource(R.string.anchor_not_bound)
-                    },
-                    color = MaterialTheme.colorScheme.error,
+                    text = stringResource(R.string.anchor_reached_named, anchorLabel),
+                    color = MaterialTheme.colorScheme.primary,
                 )
-            }
-            Button(
-                onClick = onScanAnchor,
-                enabled = anchorLabel != null && !scanning,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = if (scanning) stringResource(R.string.status_scanning)
-                    else stringResource(R.string.anchor_scan),
-                )
+            } else {
+                Text(text = stringResource(R.string.anchor_reach_named, anchorLabel))
+                ringing.anchorFeedback?.let { feedback ->
+                    Text(
+                        text = if (feedback is AnchorScanResult.NotReached && feedback.scanned == null) {
+                            stringResource(R.string.status_scan_cancelled)
+                        } else {
+                            stringResource(R.string.anchor_not_bound)
+                        },
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Button(
+                    onClick = onScanAnchor,
+                    enabled = !scanning,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (scanning) stringResource(R.string.status_scanning)
+                        else stringResource(R.string.anchor_scan),
+                    )
+                }
             }
         }
     }

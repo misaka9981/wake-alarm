@@ -71,7 +71,6 @@ fun WakeAlarmRoot(
     LaunchedEffect(onboardingRefreshKey) {
         onboarding = Onboarding.of(
             alarms = alarmRepository.load(),
-            anchors = anchorRepository.load(),
             password = escapeHatchRepository.load(),
         )
     }
@@ -85,9 +84,7 @@ fun WakeAlarmRoot(
             OnboardingScreen(
                 onboarding = current,
                 alarmRepository = alarmRepository,
-                anchorRepository = anchorRepository,
                 escapeHatchRepository = escapeHatchRepository,
-                scanner = scanner,
                 scheduler = scheduler,
                 onComplete = {
                     onboarding = null

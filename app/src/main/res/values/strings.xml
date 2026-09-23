@@ -8,7 +8,7 @@
 
     <!-- The firing notification channel. -->
     <string name="alarm_channel_name">闹钟</string>
-    <string name="alarm_channel_description">响铃的闹钟，只有完成解除挑战并到达实体锚点才能停止。</string>
+    <string name="alarm_channel_description">响铃的闹钟，完成解除挑战即可停止；若绑定了实体锚点，还需到达它。</string>
     <string name="alarm_notification_title">闹钟正在响</string>
 
     <!-- Shared actions, labels, and status text. -->
@@ -81,8 +81,8 @@
 
     <!-- Firing screen. -->
     <string name="firing_alarm_label">闹钟 — %1$s</string>
-    <string name="firing_silent_mode">静音模式——该闹钟仅振动、不发声。解除挑战与实体锚点要求不变。</string>
-    <string name="firing_cap_expired">为避免无限响铃，信号已停止，但闹钟尚未解除。请完成解除挑战并到达实体锚点以解除。</string>
+    <string name="firing_silent_mode">静音模式——该闹钟仅振动、不发声。解除方式不变。</string>
+    <string name="firing_cap_expired">为避免无限响铃，信号已停止，但闹钟尚未解除。请完成解除挑战（若绑定了实体锚点，也需到达它）以解除。</string>
     <string name="firing_challenge_progress">解除挑战 · 难度 %1$d · %2$d 秒 · 答错 %3$d 次</string>
     <string name="firing_alarm_missing">该闹钟已不存在。</string>
     <string name="firing_stop_alarm">停止闹钟</string>
@@ -116,7 +116,7 @@
     <string name="onboarding_password_blank">密码不能为空。</string>
     <string name="onboarding_password_mismatch">两次输入的密码不一致。</string>
     <string name="onboarding_set_password_and_finish">设置密码并完成</string>
-    <string name="onboarding_footer">只有起床时间、实体锚点与密码全部设置完成，设置才算完成。</string>
+    <string name="onboarding_footer">起床时间与应急出口密码设置完成后，设置即完成。实体锚点是可选的。</string>
 
     <!-- Reliability guarantees. -->
     <string name="reliability_title">可靠性</string>
@@ -141,10 +141,10 @@
     <string name="settings_alarm_at">闹钟 %1$s</string>
     <string name="settings_no_alarm">还没有闹钟。</string>
     <string name="settings_change_wake_time">更改起床时间</string>
-    <string name="settings_physical_anchor">实体锚点</string>
+    <string name="settings_physical_anchor">实体锚点（可选）</string>
     <string name="settings_anchor_bound">已绑定：「%1$s」</string>
-    <string name="settings_anchor_none">未绑定实体锚点。</string>
-    <string name="settings_change_anchor">更改实体锚点</string>
+    <string name="settings_anchor_none">未绑定实体锚点（可选）。</string>
+    <string name="settings_change_anchor">设置 / 更改实体锚点（可选）</string>
     <string name="settings_escape_hatch_password">应急出口密码</string>
     <string name="settings_password_set">已设置密码。</string>
     <string name="settings_password_none">未设置密码。</string>
@@ -179,7 +179,7 @@
     <string name="diagnostic_log_time_not_recorded">未记录时间</string>
     <string name="diagnostic_log_fired">触发 %1$s</string>
     <string name="diagnostic_log_signalled">响铃 %1$s · 音量 %2$d%%</string>
-    <string name="diagnostic_log_outcome_dismissed">已通过解除挑战与实体锚点解除</string>
+    <string name="diagnostic_log_outcome_dismissed">已通过解除挑战解除</string>
     <string name="diagnostic_log_outcome_cap_expired">响铃上限到期——仍未解除</string>
     <string name="diagnostic_log_outcome_escape_hatch">已使用应急出口</string>
     <string name="diagnostic_log_permissions_all">所有可靠性权限均已授予</string>

@@ -6,10 +6,11 @@ import kotlin.time.Duration
  * The events a [FiringSession] reacts to while an Alarm is signalling.
  *
  * There is deliberately no Snooze or skip event: an Alarm cannot be postponed,
- * and it is dismissed only once the Dismiss Challenge is solved and the Physical
- * Anchor is reached. The Escape Hatch is the one deliberate exception — it
- * force-silences an Alarm without either, but only after a hidden long-press and
- * the correct private password. See `CONTEXT.md` and ADR-0002/ADR-0003.
+ * and it is dismissed once the Dismiss Challenge is solved and, when the Alarm
+ * has a bound Physical Anchor, that Anchor is also reached. The Escape Hatch is
+ * the one deliberate exception — it force-silences an Alarm without either, but
+ * only after a hidden long-press and the correct private password. See
+ * `CONTEXT.md` and ADR-0002/ADR-0003.
  */
 sealed interface FiringEvent {
     /** The owner typed [answer] into the Dismiss Challenge and submitted it. */
@@ -59,7 +60,7 @@ sealed interface FiringState {
         val escapeHatchRevealed: Boolean = false,
     ) : FiringState
 
-    /** Both the Dismiss Challenge and the Physical Anchor are satisfied. */
+    /** The Dismiss Challenge is solved and every required Anchor has been reached. */
     data object Dismissed : FiringState
 
     /**
@@ -96,16 +97,19 @@ data class FiringSummary(
  * The end-to-end Alarm firing state machine, pure and Android-free.
  *
  * It composes the Dismiss Challenge ([DismissalSession]) with the Physical
- * Anchor decision ([AnchorScanResult]) and only reports [FiringState.Dismissed]
- * when **both** are satisfied — neither the challenge alone nor the anchor alone
- * silences the Alarm. The challenge itself still escalates with time and wrong
- * answers through [EscalationPolicy]; that is why the whole session, not just the
- * compile-time event type, is the testing seam.
+ * Anchor decision ([AnchorScanResult]). When [anchorRequired] the Alarm is
+ * dismissed only when **both** are satisfied — neither the challenge alone nor
+ * the anchor alone silences it. When the Alarm has no bound anchor the anchor is
+ * not required, so the Dismiss Challenge alone dismisses it; the anchor is an
+ * optional extra the owner may add to an Alarm. The challenge itself still
+ * escalates with time and wrong answers through [EscalationPolicy]; that is why
+ * the whole session, not just the compile-time event type, is the testing seam.
  *
  * It also applies the [SoundCap] to the elapsed ringing time. Once the cap has
  * expired, [FiringState.Ringing.capExpired] is true and the adapter stops the
  * sound and vibration, but the state stays [FiringState.Ringing] — the Alarm is
- * uncleared until both the challenge and the anchor are done.
+ * uncleared until the challenge is solved and, when [anchorRequired], the anchor
+ * is reached.
  *
  * Finally it owns the Escape Hatch: only the hidden long-press followed by the
  * correct private password reaches [FiringState.EscapeHatchUsed], which
@@ -116,6 +120,7 @@ class FiringSession private constructor(
     private val challenge: DismissalSession,
     private val soundCap: SoundCap,
     private val escapeHatch: EscapeHatch,
+    private val anchorRequired: Boolean,
     private var elapsed: Duration,
     initialState: FiringState.Ringing,
 ) {
@@ -182,9 +187,13 @@ class FiringSession private constructor(
         }
     }
 
-    /** Dismisses only once both the Dismiss Challenge and the Physical Anchor are done. */
+    /**
+     * Dismisses once the Dismiss Challenge is solved and, when [anchorRequired],
+     * the Physical Anchor has also been reached. An Alarm with no bound anchor
+     * requires no scan, so its challenge alone clears it.
+     */
     private fun settle(current: FiringState.Ringing): FiringState =
-        if (current.challenge is DismissalState.Dismissed && current.anchorReached) {
+        if (current.challenge is DismissalState.Dismissed && (!anchorRequired || current.anchorReached)) {
             FiringState.Dismissed
         } else {
             current
@@ -196,7 +205,10 @@ class FiringSession private constructor(
          * anchor not yet reached, the sound cap not yet expired, and the Escape
          * Hatch prompt hidden. [escapeHatch] is the owner's private password; it
          * defaults to [EscapeHatch.none], so an Alarm without a configured
-         * password cannot be force-silenced.
+         * password cannot be force-silenced. [anchorRequired] is whether the
+         * Alarm has a bound Physical Anchor; it defaults to `true`, preserving
+         * the canonical behaviour, and an Alarm with no bound anchor starts with
+         * it `false` so the Dismiss Challenge alone dismisses it.
          */
         fun start(
             generator: ChallengeGenerator,
@@ -204,12 +216,14 @@ class FiringSession private constructor(
             baseDifficulty: Int = 1,
             soundCap: SoundCap = SoundCap(),
             escapeHatch: EscapeHatch = EscapeHatch.none,
+            anchorRequired: Boolean = true,
         ): FiringSession {
             val challenge = DismissalSession.start(generator, policy, baseDifficulty)
             return FiringSession(
                 challenge = challenge,
                 soundCap = soundCap,
                 escapeHatch = escapeHatch,
+                anchorRequired = anchorRequired,
                 elapsed = Duration.ZERO,
                 initialState = FiringState.Ringing(
                     challenge = challenge.state,

@@ -211,6 +211,10 @@ private fun FiringRoute(
                 // before; `core` decides how it climbs from there.
                 baseDifficulty = loadedAlarm.defaultDifficulty,
                 escapeHatch = escapeHatch,
+                // The Physical Anchor is optional per Alarm: it is required only
+                // when the owner has bound one to this Alarm, otherwise the
+                // Dismiss Challenge alone clears it.
+                anchorRequired = catalog.anchorFor(loadedAlarm.id) != null,
             )
             session = started
             state = started.state

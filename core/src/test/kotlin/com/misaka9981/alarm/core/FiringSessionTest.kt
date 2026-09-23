@@ -22,6 +22,7 @@ class FiringSessionTest {
         baseDifficulty: Int = 1,
         cap: SoundCap = soundCap,
         escapeHatch: EscapeHatch = EscapeHatch.of(EscapeHatchPassword("open-sesame")),
+        anchorRequired: Boolean = true,
     ): FiringSession =
         FiringSession.start(
             generator = ArithmeticChallengeGenerator(Random(7)),
@@ -29,6 +30,7 @@ class FiringSessionTest {
             baseDifficulty = baseDifficulty,
             soundCap = cap,
             escapeHatch = escapeHatch,
+            anchorRequired = anchorRequired,
         )
 
     private fun FiringState.ringing(): FiringState.Ringing = this as FiringState.Ringing
@@ -63,6 +65,28 @@ class FiringSessionTest {
 
         assertTrue(state.challenge is DismissalState.Dismissed)
         assertFalse(state.anchorReached)
+    }
+
+    @Test
+    fun whenNoAnchorIsBoundTheChallengeAloneDismisses() {
+        val session = session(anchorRequired = false)
+        val answer = session.state.ringing().challenge().challenge.answer
+
+        val result = session.onEvent(FiringEvent.AnswerSubmitted(answer.toString()))
+
+        assertEquals(FiringState.Dismissed, result)
+    }
+
+    @Test
+    fun whenNoAnchorIsBoundAReachedAnchorDoesNotDismissByItself() {
+        val session = session(anchorRequired = false)
+
+        val state = session
+            .onEvent(FiringEvent.AnchorScanned(AnchorScanResult.Reached))
+            .ringing()
+
+        assertTrue(state.anchorReached)
+        assertTrue(state.challenge is DismissalState.Ongoing)
     }
 
     @Test

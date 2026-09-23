@@ -1,5 +1,9 @@
 Status: ready-for-agent
 
+> Change note: the Physical Anchor is now optional per Alarm (ADR-0005, ticket
+> 17). An Alarm with no bound anchor is dismissed by its Dismiss Challenge alone;
+> the anchor stories below describe the behaviour when one is bound.
+
 # Spec: Wake Alarm MVP
 
 ## Problem Statement

@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -32,6 +33,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * [Vibrator] but never a [MediaPlayer], so the Alarm signals with no sound at all.
  * The same [SoundCap] then ends the vibration, so the sound cap becomes a
  * vibration cap. Signalling never changes how hard the Alarm is to dismiss.
+ *
+ * The vibration is tagged with alarm usage, so the platform does not suppress it
+ * when the phone is in Silent Mode or Do Not Disturb — otherwise a
+ * [Signalling.VibrationOnly] Alarm would signal nothing at all.
  */
 class AlarmPlayback(
     context: Context,
@@ -139,7 +144,26 @@ class AlarmPlayback(
     }
 
     private fun startVibrating() {
-        vibrator?.vibrate(VibrationEffect.createWaveform(VIBRATION_PATTERN, 0))
+        val current = vibrator ?: return
+        val effect = VibrationEffect.createWaveform(VIBRATION_PATTERN, 0)
+        // Tag the vibration as an alarm. A plain vibration defaults to an unknown
+        // usage, which the platform suppresses under Silent Mode or Do Not
+        // Disturb; alarm usage is exempt, so Silent Mode still wakes the owner.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            current.vibrate(
+                effect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            current.vibrate(
+                effect,
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+        }
     }
 
     private companion object {

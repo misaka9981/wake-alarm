@@ -32,7 +32,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -41,48 +40,43 @@ import com.misaka9981.alarm.R
 import com.misaka9981.alarm.core.AlarmId
 import com.misaka9981.alarm.core.AlarmRepository
 import com.misaka9981.alarm.core.AlarmTime
-import com.misaka9981.alarm.core.AnchorCode
-import com.misaka9981.alarm.core.AnchorRepository
-import com.misaka9981.alarm.core.AnchorScanner
 import com.misaka9981.alarm.core.EscapeHatchPassword
 import com.misaka9981.alarm.core.EscapeHatchRepository
 import com.misaka9981.alarm.core.Onboarding
 import com.misaka9981.alarm.core.OnboardingStep
-import com.misaka9981.alarm.core.PhysicalAnchor
 import com.misaka9981.alarm.schedule.AlarmScheduler
 import java.util.UUID
 import kotlinx.coroutines.launch
 
 /**
  * The first-run flow, one numbered step at a time: set the wake time (which
- * creates the first Alarm), bind a Physical Anchor away from the bed, and set
- * the private Escape Hatch password.
+ * creates the first Alarm) and set the private Escape Hatch password.
+ *
+ * A Physical Anchor is optional and is deliberately not part of first-run setup:
+ * the owner may bind one to an Alarm later from settings, and an Alarm without
+ * one is dismissed by its Dismiss Challenge alone. Requiring it here would force
+ * every Alarm to carry an anchor.
  *
  * This screen only renders and drives the platform concerns — loading the
- * configuration, the camera, and storage. Every rule about what an Alarm is,
- * what counts as a bound anchor, and whether setup is complete lives in `core`
- * ([Onboarding]). After each step the configuration is re-read, so the step
- * shown is always [Onboarding.missingSteps]'s first — the flow resumes at the
- * first missing step rather than at a remembered position — and it finishes
- * only when [Onboarding.isComplete] is true, not when a button is tapped. There
- * is no Snooze anywhere in the flow.
+ * configuration and storage. Every rule about what an Alarm is and whether setup
+ * is complete lives in `core` ([Onboarding]). After each step the configuration
+ * is re-read, so the step shown is always [Onboarding.missingSteps]'s first —
+ * the flow resumes at the first missing step rather than at a remembered
+ * position — and it finishes only when [Onboarding.isComplete] is true, not when
+ * a button is tapped. There is no Snooze anywhere in the flow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     onboarding: Onboarding,
     alarmRepository: AlarmRepository,
-    anchorRepository: AnchorRepository,
     escapeHatchRepository: EscapeHatchRepository,
-    scanner: AnchorScanner,
     scheduler: AlarmScheduler,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     var setup by remember { mutableStateOf(onboarding) }
-    var anchorStatus by remember { mutableStateOf<String?>(null) }
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
     var passwordStatus by remember { mutableStateOf<String?>(null) }
@@ -91,9 +85,6 @@ fun OnboardingScreen(
         initialMinute = setup.firstAlarm?.time?.minute ?: 0,
         is24Hour = true,
     )
-    val anchorPrefix = stringResource(R.string.anchor_default_label)
-    val scanningLabel = stringResource(R.string.status_scanning)
-    val scanCancelledLabel = stringResource(R.string.status_scan_cancelled)
     val passwordBlankLabel = stringResource(R.string.onboarding_password_blank)
     val passwordMismatchLabel = stringResource(R.string.onboarding_password_mismatch)
 
@@ -102,7 +93,6 @@ fun OnboardingScreen(
     suspend fun reloadSetup() {
         setup = Onboarding.of(
             alarms = alarmRepository.load(),
-            anchors = anchorRepository.load(),
             password = escapeHatchRepository.load(),
         )
     }
@@ -159,44 +149,6 @@ fun OnboardingScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(text = stringResource(R.string.onboarding_set_wake_time)) }
-            }
-
-            OnboardingStep.PhysicalAnchor -> {
-                Text(
-                    text = stringResource(R.string.anchor_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = stringResource(R.string.onboarding_anchor_detail),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Button(
-                    onClick = {
-                        val alarmId = setup.firstAlarm?.id ?: return@Button
-                        scope.launch {
-                            anchorStatus = scanningLabel
-                            val payload = scanner.scan()
-                            if (payload == null) {
-                                anchorStatus = scanCancelledLabel
-                                return@launch
-                            }
-                            val code = AnchorCode(payload)
-                            val catalog = anchorRepository.load()
-                            val label = catalog.findByCode(code)?.label
-                                ?: anchorLabelFor(payload, anchorPrefix)
-                            anchorRepository.save(
-                                catalog
-                                    .set(PhysicalAnchor(code = code, label = label))
-                                    .bind(alarmId, code),
-                            )
-                            anchorStatus = context.getString(R.string.onboarding_anchor_bound, label)
-                            reloadSetup()
-                        }
-                    },
-                    enabled = setup.firstAlarm != null,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(text = stringResource(R.string.anchor_scan)) }
-                anchorStatus?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
             }
 
             OnboardingStep.EscapeHatchPassword -> {
